@@ -7,12 +7,32 @@ import { useApiMutation } from "@/hooks/useApiMutation";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 const EnquiryList = () => {
-  const { data, isLoading, error } = useGetApiMutation({
+  const [deleteId, setDeleteId] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/enquiry`,
     queryKey: ["enquiry"],
   });
+  console.log("data", data);
+  console.log("Cache data:", queryClient.getQueryData(["enquiry", null]));
   const { trigger: deleteTrigger } = useApiMutation();
 
   const handleDelete = async (id) => {
@@ -22,9 +42,18 @@ const EnquiryList = () => {
         method: "delete",
       });
       if (res?.code === 200 || res?.code === 201) {
+        queryClient.setQueryData(["enquiry", null], (old) => {
+          if (!old?.data?.data) return old;
+
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              data: old.data.data.filter((item) => item.id !== id),
+            },
+          };
+        });
         toast.success(res?.message || "Enquiry deleted successfully");
-        queryClient.invalidateQueries(["enquiry-list"]);
-        refetch();
       } else {
         toast.error(res?.message || "Failed to delete enquiry");
       }
@@ -75,6 +104,36 @@ const EnquiryList = () => {
       ),
     },
     {
+      header: "medium",
+      accessorKey: "utm_medium",
+      cell: ({ row }) => (
+        <span className="text-gray-600">{row.original.utm_medium || "-"}</span>
+      ),
+    },
+    {
+      header: "medium",
+      accessorKey: "utm_medium",
+      cell: ({ row }) => (
+        <span className="text-gray-600">{row.original.utm_medium || "-"}</span>
+      ),
+    },
+    {
+      header: "Source",
+      accessorKey: "utm_source",
+      cell: ({ row }) => (
+        <span className="text-gray-600">{row.original.utm_source || "-"}</span>
+      ),
+    },
+    {
+      header: "campaign",
+      accessorKey: "utm_campaign",
+      cell: ({ row }) => (
+        <span className="text-gray-600">
+          {row.original.utm_campaign || "-"}
+        </span>
+      ),
+    },
+    {
       header: "Status",
       accessorKey: "status",
       cell: ({ row }) => (
@@ -88,11 +147,14 @@ const EnquiryList = () => {
       ),
     },
     {
-      header: "Delete",
+      header: "Actions",
       cell: ({ row }) => (
         <button
           className="text-red-500 hover:text-red-700"
-          onClick={() => handleDelete(row.original.id)}
+          onClick={() => {
+            setDeleteId(row.original.id);
+            setOpen(true);
+          }}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -107,6 +169,33 @@ const EnquiryList = () => {
         pageSize={10}
         searchPlaceholder="Search Enquiries..."
       />
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Do you want to delete this enquiry?
+            </AlertDialogTitle>
+
+            <AlertDialogDescription>
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={() => {
+                handleDelete(deleteId);
+                setOpen(false);
+                setDeleteId(null);
+              }}
+            >
+              Yes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
