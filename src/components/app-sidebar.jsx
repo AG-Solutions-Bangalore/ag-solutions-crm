@@ -38,6 +38,11 @@ const NAVIGATION_CONFIG = {
       url: "/enquiries",
       icon: BarChart3,
     },
+    PROJECTS: {
+      title: "Projects",
+      url: "/projects",
+      icon: MapPinHouse,
+    },
     SETTINGS: {
       title: "Settings",
       url: "/settings",
@@ -53,17 +58,17 @@ const USER_ROLE_PERMISSIONS = {
     navMainReport: ["DASHBOARD", "SETTINGS"],
   },
   2: {
-    navMain: ["DASHBOARD", "ENQUIRIES", "SETTINGS"],
+    navMain: ["DASHBOARD", "ENQUIRIES", "PROJECTS", "SETTINGS"],
 
     navMainReport: ["DASHBOARD", "SETTINGS"],
   },
   3: {
-    navMain: ["DASHBOARD", "ENQUIRIES", "SETTINGS"],
+    navMain: ["DASHBOARD", "ENQUIRIES", "PROJECTS", "SETTINGS"],
 
     navMainReport: ["DASHBOARD", "SETTINGS"],
   },
   4: {
-    navMain: ["DASHBOARD", "ENQUIRIES", "SETTINGS"],
+    navMain: ["DASHBOARD", "ENQUIRIES", "PROJECTS", "SETTINGS"],
 
     navMainReport: ["DASHBOARD", "SETTINGS"],
   },

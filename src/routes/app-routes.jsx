@@ -10,6 +10,7 @@ import AuthRoute from "./auth-route";
 import ProtectedRoute from "./protected-route";
 import Dashboard from "@/app/dashboard/dashboard";
 import EnquiryList from "@/app/Enquiry/EnquiryList";
+import Projects from "@/app/Projects/Projects";
 
 function AppRoutes() {
   return (
@@ -33,6 +34,14 @@ function AppRoutes() {
             element={
               <Suspense fallback={<LoadingBar />}>
                 <EnquiryList />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/projects"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Projects />
               </Suspense>
             }
           />
