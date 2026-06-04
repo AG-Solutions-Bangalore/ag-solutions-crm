@@ -8,12 +8,17 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { Newspaper } from "lucide-react";
+
 import {
   GalleryVerticalEnd,
   Bell,
   Settings2,
   LayoutDashboard,
   Boxes,
+  Images,
+  BadgeDollarSign,
+  Settings,
   MapPinHouse,
   User,
   LandPlot,
@@ -43,10 +48,30 @@ const NAVIGATION_CONFIG = {
       url: "/projects",
       icon: MapPinHouse,
     },
+    NEWSLEETER: {
+      title: "NewsLetter",
+      url: "/newsLetter",
+      icon: Newspaper,
+    },
+    CATEGORY: {
+      title: "Category",
+      url: "/category-list",
+      icon: Cog,
+    },
+    GALLERY: {
+      title: "Gallery-List",
+      url: "/gallery-list",
+      icon: Images,
+    },
+    SPONSAR: {
+      title: "Sponsar-list",
+      url: "/Sponsar-list",
+      icon: BadgeDollarSign,
+    },
     SETTINGS: {
       title: "Settings",
       url: "/settings",
-      icon: Cog,
+      icon: Settings,
     },
   },
 };
@@ -58,17 +83,47 @@ const USER_ROLE_PERMISSIONS = {
     navMainReport: ["DASHBOARD", "SETTINGS"],
   },
   2: {
-    navMain: ["DASHBOARD", "ENQUIRIES", "PROJECTS", "SETTINGS"],
+    navMain: [
+      "DASHBOARD",
+      "ENQUIRIES",
+      "PROJECTS",
+      "NEWSLEETER",
+      "CATEGORY",
+      "SPONSAR",
+      "GALLERY",
+
+      "SETTINGS",
+    ],
 
     navMainReport: ["DASHBOARD", "SETTINGS"],
   },
   3: {
-    navMain: ["DASHBOARD", "ENQUIRIES", "PROJECTS", "SETTINGS"],
+    navMain: [
+      "DASHBOARD",
+      "ENQUIRIES",
+      "PROJECTS",
+      "NEWSLEETER",
+      "CATEGORY",
+      "SPONSAR",
+      "GALLERY",
+
+      "SETTINGS",
+    ],
 
     navMainReport: ["DASHBOARD", "SETTINGS"],
   },
   4: {
-    navMain: ["DASHBOARD", "ENQUIRIES", "PROJECTS", "SETTINGS"],
+    navMain: [
+      "DASHBOARD",
+      "ENQUIRIES",
+      "PROJECTS",
+      "NEWSLEETER",
+      "CATEGORY",
+      "SPONSAR",
+      "GALLERY",
+
+      "SETTINGS",
+    ],
 
     navMainReport: ["DASHBOARD", "SETTINGS"],
   },

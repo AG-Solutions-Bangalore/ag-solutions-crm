@@ -11,6 +11,13 @@ import ProtectedRoute from "./protected-route";
 import Dashboard from "@/app/dashboard/dashboard";
 import EnquiryList from "@/app/Enquiry/EnquiryList";
 import Projects from "@/app/Projects/Projects";
+import CreateProjects from "@/app/Projects/CreateProjects";
+import Newsletter from "@/app/Newsletter/Newsletter";
+import Category from "@/app/category/Category";
+import CreateCategory from "@/app/category/createCategory";
+import GalleryList from "@/app/gallery/gallery-list";
+import { SPONSAR_API } from "@/constants/apiConstants";
+import Sponsor from "@/app/sponsor/sponsor";
 
 function AppRoutes() {
   return (
@@ -30,10 +37,61 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/gallery-list"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <GalleryList />
+              </Suspense>
+            }
+          />
+          <Route
             path="/enquiries"
             element={
               <Suspense fallback={<LoadingBar />}>
                 <EnquiryList />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/Category-list"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Category />
+              </Suspense>
+            }
+          />
+
+          <Route
+            path="/Sponsar-list"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Sponsor />
+              </Suspense>
+            }
+          />
+
+          <Route
+            path="/create-project"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <CreateProjects />
+              </Suspense>
+            }
+          />
+
+          <Route
+            path="/newsLetter"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Newsletter />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/create-category"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <CreateCategory />
               </Suspense>
             }
           />

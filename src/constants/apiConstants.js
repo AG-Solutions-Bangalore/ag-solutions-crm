@@ -57,6 +57,28 @@ export const ENQUIRY_API = {
 
 };
 
+
+export const CATEGORY_API={
+  updateStatus: (id) => `/categorys/${id}/status`,
+  update:(id)=>`/category/${id}`,
+  create:`/category`
+}
+export const PROJECT_API = {
+  deleteById: (id) => `/project/${id}`,
+  updateStatus: (id) => `/projects/${id}/status`,
+  updateById: (id) => `/project/${id}`,
+  create: "/project",
+  updateSort:(id)=>`/projects/${id}/sort`
+};
+export const GALLERYS_API={
+
+
+
+}
+export const SPONSAR_API={
+  
+
+}
 export const REPORT_API = {
   employee: "/employee-report",
   site: "/site-report",
@@ -177,6 +199,7 @@ export const YOUTUBEFOR_API = {
 };
 export const NEWSLETTER_API = {
   list: "/newsletter",
+  deleteById: (id) =>`/newsletter/${id}`
 };
 export const STUDENT_API = {
   list: "/student",

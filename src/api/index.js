@@ -9,6 +9,9 @@ export const FORGOT_PASSWORD_API = `/panel-send-password`;
 //-------------------Pages------------------------//
 export const PAGE_ONE_API = `/page-one`;
 export const PAGE_TWO_API = `/page-two`;
+/// ---projects----//
+export const PROJECT_DELETE_API = (id) => `/project/${id}`;
+export const PROJECT_SORT_UPDATE=(id)=>`/projects${id}/sort`;
 
 //-------------------Company------------------------//
 export const COMPANY_LIST_API = `/company`;

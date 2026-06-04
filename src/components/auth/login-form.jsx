@@ -1,7 +1,6 @@
-import { motion } from "framer-motion";
-import { Eye, EyeOff, Key, Lock, LogIn, User } from "lucide-react";
+import React, { useState } from "react";
+import { Eye, EyeOff, LogIn } from "lucide-react";
 import { Button } from "../ui/button";
-import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getImageBaseUrl } from "@/utils/imageUtils";
 
@@ -28,131 +27,144 @@ export default function LoginForm({
       : null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.6, delay: 0.2 }}
-      className="h-full lg:col-span-2 p-6 md:p-10 flex flex-col justify-center bg-white to-transparent"
-    >
-      <div className="flex items-center rounded-md mb-4 md:mb-6">
-        {logoUrl ? (
-          <img src={logoUrl} alt="Logo" className="h-16 md:h-20 w-auto" />
-        ) : (
-          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary font-bold">
-            3 Concepts Building Solutions
-          </div>
+    <div className="h-full lg:col-span-2 p-8 md:p-12 lg:p-16 flex flex-col justify-between bg-white text-zinc-950">
+      {/* Brand Logo Header */}
+      <div className="flex items-center gap-3">
+        {logoUrl && (
+          <img
+            src={logoUrl}
+            alt="AG Solutions Logo"
+            className="h-14 w-auto object-contain"
+          />
         )}
+
+        <div className="flex flex-col leading-none">
+          <div
+            className="text-[28px] tracking-tight"
+            style={{ fontFamily: "Roboto, sans-serif" }}
+          >
+            <span className="font-black">AG</span>
+            <span className="font-normal">Solutions</span>
+          </div>
+
+          <div className="text-[12px] uppercase text-zinc-500 mt-1 tracking-wide">
+            Single Click Solution
+          </div>
+        </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-      >
-        <h1 className="text-3xl md:text-4xl font-bold text-dark mb-1">
-          Welcome back
-        </h1>
-        <p className="text-dark/20 text-lg mb-6 md:mb-8">
-          Comfort Meets Design
-        </p>
-      </motion.div>
-      <form onSubmit={handleSubmit}>
-        <div className="space-y-3 md:space-y-5">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <label className="block text-sm font-medium text-dark mb-2">
-              Mobile No
-            </label>
-            <div className="relative group">
-              <motion.input
-                ref={emailInputRef}
-                type="tel"
-                placeholder="Enter your mobile no."
-                value={email}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, ""); // allow only digits
-                  if (value.length <= 10) setEmail(value);
-                }}
-                minLength={10}
-                maxLength={10}
-                className="no-spinner w-full px-4 py-2.5 pl-11 rounded-xl bg-white/10 border border-dark text-dark placeholder-dark/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all duration-300"
-                whileFocus={{ scale: 1.02 }}
-              />
-              <User
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-dark/40 group-focus-within:text-primary transition-colors"
-                size={18}
-              />
-            </div>
-          </motion.div>
+      {/* Form Container */}
+      <div className="flex-1 flex flex-col justify-center max-w-sm w-full mx-auto my-auto space-y-8">
+        <div>
+          <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight mb-1">
+            Welcome back
+          </h1>
+          <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">
+            Comfort Meets Design
+          </p>
+        </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-          >
-            <label className="block text-sm font-medium text-dark mb-2">
+        {/* Form Fields */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Mobile No Input with bottom line */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+              Mobile Number
+            </label>
+            <input
+              ref={emailInputRef}
+              type="tel"
+              placeholder="Enter your mobile no."
+              value={email}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, ""); // allow only digits
+                if (value.length <= 10) setEmail(value);
+              }}
+              minLength={10}
+              maxLength={10}
+              className="w-full py-2 bg-transparent text-zinc-850 placeholder-zinc-300 border-b border-zinc-200 focus:border-zinc-950 focus:outline-none transition-colors text-sm font-medium"
+            />
+          </div>
+
+          {/* Password Input with bottom line */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
               Password
             </label>
-            <div className="relative group">
-              <motion.input
+            <div className="relative flex items-center">
+              <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="no-spinner w-full px-4 py-2.5 pl-11 rounded-xl bg-white/10 border border-dark text-dark placeholder-dark/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all duration-300"
-                whileFocus={{ scale: 1.02 }}
+                className="w-full py-2 pr-10 bg-transparent text-zinc-850 placeholder-zinc-300 border-b border-zinc-200 focus:border-zinc-950 focus:outline-none transition-colors text-sm font-medium"
               />
-              <Lock
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-dark/40 group-focus-within:text-primary transition-colors"
-                size={18}
-              />
-              <motion.button
+              <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-[12px] text-primary transition-colors p-1"
-                whileHover={{ scale: 1.15 }}
-                whileTap={{ scale: 0.9 }}
+                className="absolute right-0 bottom-2 text-zinc-400 hover:text-zinc-650 p-1 transition-colors"
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </motion.button>
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.85 }}
-            className="mt-2 text-right"
-          >
+          </div>
+
+          {/* Forgot Password Link */}
+          <div className="flex justify-end">
             <button
               type="button"
               onClick={onSwitchToForgot}
-              className="text-sm text-primary/80 hover:text-primary transition-colors font-medium"
+              className="text-xs font-semibold text-zinc-405 hover:text-zinc-950 transition-colors"
             >
               Forgot password?
             </button>
-          </motion.div>
-          <Button className="w-full py-3" type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <motion.span
-                key={loadingMessage}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-              >
-                {loadingMessage}
-              </motion.span>
-            ) : (
-              <>
-                <LogIn size={18} />
-                Sign In
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
-    </motion.div>
+          </div>
+
+          {/* Solid Black Button */}
+          <div className="pt-2">
+            <Button
+              className="w-full py-6 rounded-md bg-zinc-950 text-white hover:bg-zinc-800 transition-colors flex items-center justify-center font-bold text-xs tracking-wider uppercase cursor-pointer"
+              type="submit"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  <span>{loadingMessage || "Signing In..."}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <LogIn size={14} />
+                  <span>Sign In</span>
+                </div>
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      {/* Footer Copy */}
+      <div className="text-[10px] text-zinc-400 text-center mt-8">
+        © AG solutions. All rights reserved.
+      </div>
+    </div>
   );
 }
