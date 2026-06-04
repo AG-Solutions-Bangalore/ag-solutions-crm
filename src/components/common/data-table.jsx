@@ -37,6 +37,7 @@ import { Link } from "react-router-dom";
 const DataTable = ({
   data = [],
   columns = [],
+  filterProjects,
   pageSize = 10,
   searchPlaceholder = "Search...",
   addButton,
@@ -111,59 +112,60 @@ const DataTable = ({
     <div className="space-y-3">
       <div className="flex items-center justify-between py-1">
         {!hideSearch && (
-        <div className="relative w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            value={searchValue}
-            onChange={(e) => {
-              const value = e.target.value;
-              setSearchValue(value);
+          <div className="relative w-64">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              value={searchValue}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchValue(value);
 
-              if (isServer) {
-                serverPagination.onSearch?.(value);
-                serverPagination.onPageChange(0);
-              } else {
-                setGlobalFilter(value);
-              }
-            }}
-            placeholder={searchPlaceholder}
-            className="pl-8 h-9 text-sm bg-gray-50 border-gray-200"
-          />
-        </div>
+                if (isServer) {
+                  serverPagination.onSearch?.(value);
+                  serverPagination.onPageChange(0);
+                } else {
+                  setGlobalFilter(value);
+                }
+              }}
+              placeholder={searchPlaceholder}
+              className="pl-8 h-9 text-sm bg-gray-50 border-gray-200"
+            />
+          </div>
         )}
 
+        {filterProjects}
         <div className="flex items-center gap-2">
           {!hideColumns && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                Columns <ChevronDown className="ml-2 h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  const columnDef = columns.find(
-                    (col) =>
-                      col.accessorKey === column.id || col.id === column.id,
-                  );
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                      className="text-xs capitalize"
-                    >
-                      {columnDef?.header || column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  Columns <ChevronDown className="ml-2 h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                {table
+                  .getAllColumns()
+                  .filter((column) => column.getCanHide())
+                  .map((column) => {
+                    const columnDef = columns.find(
+                      (col) =>
+                        col.accessorKey === column.id || col.id === column.id,
+                    );
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) =>
+                          column.toggleVisibility(!!value)
+                        }
+                        className="text-xs capitalize"
+                      >
+                        {columnDef?.header || column.id}
+                      </DropdownMenuCheckboxItem>
+                    );
+                  })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {addButton &&
@@ -188,7 +190,6 @@ const DataTable = ({
           {extraButton}
         </div>
       </div>
-
       <div className="rounded-none border min-h-[31rem]">
         <Table>
           <TableHeader>
@@ -293,7 +294,6 @@ const DataTable = ({
           </TableBody>
         </Table>
       </div>
-
       {/* 🔹 Pagination */}
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">

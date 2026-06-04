@@ -86,7 +86,8 @@ export default function AuthUI() {
   };
 
   return (
-    <div className="h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900 flex items-center justify-center overflow-hidden relative">
+    <div className="h-full bg-gradient-to-br from-[#e8f0fe] via-white to-[#f0f4ff] flex items-center justify-center overflow-hidden relative">
+      {" "}
       <BackgroundSVG />
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -95,7 +96,6 @@ export default function AuthUI() {
         className="relative h-fit max-h-[90dvh] z-10 max-w-6xl w-full"
       >
         <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-5 gap-0 rounded-3xl overflow-hidden backdrop-blur-xl bg-white/10 border border-white shadow-2xl">
-          <BrandPanel />
           {view === "login" ? (
             <LoginForm
               email={email}
@@ -113,6 +113,7 @@ export default function AuthUI() {
           ) : (
             <ForgotPasswordForm onBackToLogin={() => setView("login")} />
           )}
+          <BrandPanel />
         </div>
       </motion.div>
     </div>

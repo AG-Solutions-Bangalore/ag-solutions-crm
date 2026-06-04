@@ -1,8 +1,8 @@
+import React, { useState } from "react";
 import DataTable from "@/components/common/data-table";
 import Loader from "@/components/loader/loader";
-import StatusDropdown from "@/components/toogle/Enquiry-toggle";
 import BASE_URL from "@/config/base-url";
-import { ENQUIRY_API } from "@/constants/apiConstants";
+import { NEWSLETTER_API } from "@/constants/apiConstants";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
 import { Trash2 } from "lucide-react";
@@ -19,17 +19,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
 
-const EnquiryList = () => {
+const Newsletter = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [open, setOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error, refetch } = useGetApiMutation({
-    url: `${BASE_URL}/enquiry`,
-    queryKey: ["enquiry"],
+  const { data, isLoading, error } = useGetApiMutation({
+    url: `${BASE_URL}/newsletter`,
+    queryKey: ["newsletter"],
   });
 
   const { trigger: deleteTrigger } = useApiMutation();
@@ -37,11 +36,12 @@ const EnquiryList = () => {
   const handleDelete = async (id) => {
     try {
       const res = await deleteTrigger({
-        url: ENQUIRY_API.deleteById(id),
+        url: NEWSLETTER_API.deleteById(id),
         method: "delete",
       });
       if (res?.code === 200 || res?.code === 201) {
-        queryClient.setQueryData(["enquiry", null], (old) => {
+        // Updated to target the correct "newsletter" queryKey
+        queryClient.setQueryData(["newsletter", null], (old) => {
           if (!old?.data?.data) return old;
 
           return {
@@ -52,9 +52,9 @@ const EnquiryList = () => {
             },
           };
         });
-        toast.success(res?.message || "Enquiry deleted successfully");
+        toast.success(res?.message || "Newsletter deleted successfully");
       } else {
-        toast.error(res?.message || "Failed to delete enquiry");
+        toast.error(res?.message || "Failed to delete newsletter");
       }
     } catch (error) {
       toast.error("Something went wrong");
@@ -67,7 +67,10 @@ const EnquiryList = () => {
         <Loader />
       </>
     );
-  if (error) return <div>Error</div>;
+
+  if (error) return <div>Error loading newsletters</div>;
+
+  // Updated columns to match newsletter API response
   const columns = [
     {
       header: "SL No",
@@ -75,74 +78,21 @@ const EnquiryList = () => {
       cell: ({ row }) => <span>{row.index + 1}</span>,
     },
     {
-      header: "Name",
-      accessorKey: "enquiryFullName",
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.enquiryFullName}</span>
-      ),
-    },
-    {
-      header: "Mobile",
-      accessorKey: "enquiryMobile",
-      cell: ({ row }) => (
-        <span className="text-gray-600">{row.original.enquiryMobile}</span>
-      ),
-    },
-    {
       header: "Email",
-      accessorKey: "enquiryEmail",
+      accessorKey: "newsletter_email",
       cell: ({ row }) => (
-        <span className="text-gray-600">{row.original.enquiryEmail}</span>
+        <span className="font-medium">{row.original.newsletter_email}</span>
       ),
     },
     {
-      header: "Message",
-      accessorKey: "enquiryMessage",
-      cell: ({ row }) => (
-        <span className="text-gray-600">{row.original.enquiryMessage}</span>
-      ),
-    },
-    {
-      header: "medium",
-      accessorKey: "utm_medium",
-      cell: ({ row }) => (
-        <span className="text-gray-600">{row.original.utm_medium || "-"}</span>
-      ),
-    },
-    {
-      header: "medium",
-      accessorKey: "utm_medium",
-      cell: ({ row }) => (
-        <span className="text-gray-600">{row.original.utm_medium || "-"}</span>
-      ),
-    },
-    {
-      header: "Source",
-      accessorKey: "utm_source",
-      cell: ({ row }) => (
-        <span className="text-gray-600">{row.original.utm_source || "-"}</span>
-      ),
-    },
-    {
-      header: "campaign",
-      accessorKey: "utm_campaign",
+      header: "Subscribed Date",
+      accessorKey: "newsletter_created",
       cell: ({ row }) => (
         <span className="text-gray-600">
-          {row.original.utm_campaign || "-"}
+          {new Date(row.original.newsletter_created)
+            .toLocaleDateString("en-GB")
+            .replace(/\//g, "-")}
         </span>
-      ),
-    },
-    {
-      header: "Status",
-      accessorKey: "status",
-      cell: ({ row }) => (
-        <StatusDropdown
-          initialStatus={row.original.status}
-          apiUrl={`${BASE_URL}/enquiry/${row.original.id}`}
-          payloadKey="enquiryStatus"
-          method="PUT"
-          options={["Pending", "Approved", "Cancel", "Completed"]}
-        />
       ),
     },
     {
@@ -160,19 +110,20 @@ const EnquiryList = () => {
       ),
     },
   ];
+
   return (
     <div>
       <DataTable
         columns={columns}
         data={data?.data?.data || []}
         pageSize={10}
-        searchPlaceholder="Search Enquiries..."
+        searchPlaceholder="Search Newsletters..."
       />
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Do you want to delete this enquiry?
+              Do you want to delete this newsletter email?
             </AlertDialogTitle>
 
             <AlertDialogDescription>
@@ -181,9 +132,12 @@ const EnquiryList = () => {
           </AlertDialogHeader>
 
           <AlertDialogFooter>
-            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setDeleteId(null)}>
+              No
+            </AlertDialogCancel>
 
             <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
               onClick={() => {
                 handleDelete(deleteId);
                 setOpen(false);
@@ -198,4 +152,5 @@ const EnquiryList = () => {
     </div>
   );
 };
-export default EnquiryList;
+
+export default Newsletter;

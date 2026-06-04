@@ -33,9 +33,7 @@ const ToggleStatus = ({
         setStatus(newStatus);
         onSuccess?.();
 
-        toast.success(res.message, {
-          description: `Status changed to ${newStatus}`,
-        });
+        toast.success(res.message);
       } else {
         toast.error(res?.message || "Unable to update status");
       }
