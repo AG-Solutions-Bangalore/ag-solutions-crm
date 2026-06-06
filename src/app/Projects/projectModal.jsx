@@ -13,6 +13,7 @@ import Redstar from "@/components/Redstar";
 import BASE_URL from "@/config/base-url";
 
 const ProjectModal = ({ setOpenEdit, project, refetch }) => {
+  const queryClient = useQueryClient();
   const { trigger: updateProject } = useApiMutation();
   const [errors, setErrors] = useState({});
 
@@ -112,8 +113,9 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
     payload.append("project_features", formData.project_features);
     payload.append("project_technology", formData.project_technology);
 
+    // Append image file directly if present
     if (formData.project_image) {
-      payload.project_image = await convertToBase64(formData.project_image);
+      payload.append("project_image", formData.project_image);
     }
 
     try {
@@ -122,6 +124,9 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
         method: "PUT",
         data: payload,
       });
+
+      // Invalidate project list cache to refresh data
+      queryClient.invalidateQueries(["project", null]);
 
       if (refetch) refetch();
       setOpenEdit(false);

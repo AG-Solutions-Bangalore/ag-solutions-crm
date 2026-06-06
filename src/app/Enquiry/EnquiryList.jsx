@@ -30,6 +30,7 @@ const EnquiryList = () => {
   const { data, isLoading, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/enquiry`,
     queryKey: ["enquiry"],
+    
   });
 
   const { trigger: deleteTrigger } = useApiMutation();

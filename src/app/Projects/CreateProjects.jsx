@@ -162,7 +162,8 @@ const CreateProjects = () => {
 
       if (res?.code === 201 || res?.code === 200) {
         toast.success(res?.message || "Project created successfully");
-        queryClient.invalidateQueries(["project-list"]);
+        // Invalidate the project list cache to refresh data
+        queryClient.invalidateQueries(["project", null]);
         // Adjust the route as per your routing setup
         navigate("/projects");
       } else {

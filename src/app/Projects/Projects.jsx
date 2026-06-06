@@ -186,7 +186,7 @@ const Projects = () => {
             method="patch"
             onSuccess={() => {
               // Update the cache locally instead of calling refetch()
-              queryClient.setQueryData(["project"], (old) => {
+              queryClient.setQueryData(["project", null], (old) => {
                 if (!old?.data) return old;
                 // Determine the new toggled status
                 const newStatus =

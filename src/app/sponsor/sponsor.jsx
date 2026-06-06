@@ -5,14 +5,24 @@ import BASE_URL from "@/config/base-url";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
 import ImageCell from "@/components/common/ImageCell";
 import { getImageBaseUrl, getNoImageUrl } from "@/utils/imageUtils";
+import SponsorModal from "./SponsarModal";
+import { Edit } from "lucide-react";
+import SponsarEdit from "./SponsarEdit";
+import { toast } from "sonner";
 
 const Sponsor = () => {
   // Fetch sponsors list
   const [openCreate, setOpenCreate] = useState(false); // 2. State for the create modal
+  const [openEdit, setOpenEdit] = useState(false);
+  const [selectedSponsar, setSelectedSponsar] = useState(null);
+  const [pageIndex, setPageIndex] = useState(0);
 
   const { data, isLoading, error } = useGetApiMutation({
     url: `${BASE_URL}/sponsor`,
-    queryKey: ["sponsor"],
+    queryKey: ["sponsor", pageIndex],
+    params: {
+      page: pageIndex + 1,
+    },
   });
 
   if (isLoading) {
@@ -101,6 +111,27 @@ const Sponsor = () => {
         </span>
       ),
     },
+    {
+      header: "Actions",
+      accessorKey: "actions",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <Edit
+            className="h-4 w-4 hover:text-blue-600 cursor-pointer"
+            onClick={() => {
+              setSelectedSponsar(row.original);
+              setOpenEdit(true);
+            }}
+          />
+
+          {/* <Trash2
+            className="h-4 w-4 hover:text-red-600 cursor-pointer"
+            onClick={() => setDeleteId(row.original.id)} // Open dialog instead of deleting directly
+          /> */}
+        </div>
+      ),
+      enableSorting: false,
+    },
   ];
 
   return (
@@ -109,12 +140,26 @@ const Sponsor = () => {
         columns={columns}
         data={data?.data?.data || []} // Safely accesses nested paginated data array
         pageSize={10}
+        serverPagination={{
+          pageIndex: pageIndex,
+          pageCount: data?.data?.last_page || 1,
+          total: data?.data?.total || 0,
+          onPageChange: (newPageIndex) => setPageIndex(newPageIndex),
+        }}
         searchPlaceholder="Search Sponsors..."
         addButton={{
           onClick: () => setOpenCreate(true),
-          label: "Create Category",
+          label: "Add Sponsor",
         }}
       />
+      {openCreate && <SponsorModal setOpenEdit={setOpenCreate} />}
+      {openEdit && (
+        <SponsarEdit
+          setOpenEdit={setOpenEdit}
+          selectedSponsar={selectedSponsar}
+          sponsorsBaseUrl={sponsorsBaseUrl}
+        />
+      )}
     </div>
   );
 };
