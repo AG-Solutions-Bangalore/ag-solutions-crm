@@ -23,17 +23,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import Loader from "@/components/loader/loader";
 
 const UpdateBlog = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { trigger: updateBlog, loading } = useApiMutation();
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/blog/${id}`,
     queryKey: ["blog", id],
   });
 
+  const { data: categoriesResponse } = useGetApiMutation({
+    url: `${BASE_URL}/category`,
+    queryKey: ["category"],
+  });
+
+  // const { data: categoriesResponse } = useQuery({
+  //   queryKey: ["active-categories"],
+  //   queryFn: async () => {
+  //     const token = store.getState().auth?.token;
+  //     // You can replace CATEGORY_API.list with the exact endpoint to fetch active categories
+  //     const res = await axios.get(
+  //       `${BASE_URL}${CATEGORY_API.list || "/category"}`,
+  //       {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       },
+  //     );
+  //     return res.data;
+  //   },
+  // });
+  const categories =
+    categoriesResponse?.data?.data?.filter(
+      (item) => item.category_status === "Active",
+    ) || [];
   const [formData, setFormData] = useState({
     blog_slug: "",
     blog_index: "Yes",
@@ -45,10 +77,10 @@ const UpdateBlog = () => {
     blog_banner_image_alt: "",
     blog_updated_date: "",
     blog_front: "",
+    blog_categories_ids: "",
     blog_featured: "No",
     blog_status: "Active",
   });
-
   const [preview, setPreview] = useState({
     blog_banner_image: "",
   });
@@ -71,6 +103,8 @@ const UpdateBlog = () => {
       blog_banner_image_alt: blog.blog_banner_image_alt || "",
       blog_updated_date:
         blog.blog_updated_date || new Date().toISOString().split("T")[0],
+      blog_categories_ids: "",
+
       blog_front: blog.blog_front || "",
       blog_featured: blog.blog_featured || "No",
       blog_status: blog.blog_status || "Active",
@@ -190,11 +224,15 @@ const UpdateBlog = () => {
     if (formData.blog_banner_image instanceof File) {
       payload.append("blog_banner_image", formData.blog_banner_image);
     }
-
+    payload.append(
+      "blog_categories_ids",
+      formData.blog_categories_ids,
+      // JSON.stringify(formData.blog_categories_ids.map(Number).join(",")),
+    );
     try {
       const res = await updateBlog({
         url: BLOG_API.updateById(id),
-        method: "PUT",
+        method: "post",
         data: payload,
         headers: {
           "Content-Type": "multipart/form-data",
@@ -202,7 +240,9 @@ const UpdateBlog = () => {
       });
 
       toast.success(res?.message || "Blog updated successfully");
-      refetch();
+      queryClient.invalidateQueries({
+        queryKey: ["blog"],
+      });
       navigate(-1);
     } catch (err) {
       console.error(err);
@@ -210,8 +250,39 @@ const UpdateBlog = () => {
     }
   };
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   if (!validateForm()) {
+  //     toast.error("Please fill all the required fields");
+  //     return;
+  //   }
+
+  //   const payload = new FormData();
+
+  //   payload.append("blog_slug", formData.blog_slug);
+  //   payload.append("blog_index", formData.blog_index);
+  //   payload.append("blog_meta_keywords", formData.blog_meta_keywords);
+  //   payload.append("blog_title", formData.blog_title);
+  //   payload.append("blog_short_description", formData.blog_short_description);
+  //   payload.append("blog_description", formData.blog_description);
+  //   payload.append("blog_banner_image_alt", formData.blog_banner_image_alt);
+  //   payload.append("blog_updated_date", formData.blog_updated_date);
+  //   payload.append("blog_front", formData.blog_front);
+  //   payload.append("blog_featured", formData.blog_featured);
+  //   payload.append("blog_status", formData.blog_status);
+
+  //   if (formData.blog_banner_image instanceof File) {
+  //     payload.append("blog_banner_image", formData.blog_banner_image);
+  //   }
+  //   const response = await fetch(`https://api.example.com/blogs/${id}`, {
+  //     method: "PUT",
+  //     body: formData,
+  //   });
+  //   const data = await response.json();
+  //   console.log(data);
+  // };
   if (isLoading) {
-    return <div className="p-6">Loading...</div>;
+    return <Loader />;
   }
 
   if (error) {
@@ -251,7 +322,7 @@ const UpdateBlog = () => {
           </div>
         }
       />
-      
+
       <Card className="mt-2">
         <CardContent className="p-4">
           <form
@@ -294,6 +365,91 @@ const UpdateBlog = () => {
               />
               {errors.blog_slug && (
                 <p className="text-sm text-red-500">{errors.blog_slug}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>
+                Categories <Redstar />
+              </Label>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between"
+                  >
+                    {formData.blog_categories_ids.length > 0
+                      ? `${formData.blog_categories_ids.split(",").length} Categories Selected`
+                      : "Select Categories"}
+                  </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="w-80">
+                  <div className="max-h-60 overflow-y-auto space-y-3">
+                    {categories.map((category) => (
+                      <div
+                        key={category.id}
+                        className="flex items-center gap-2"
+                      >
+                        <Checkbox
+                          id={`category-${category.id}`}
+                          checked={formData.blog_categories_ids
+                            .split(",")
+                            .includes(String(category.id))}
+                          onCheckedChange={(checked) => {
+                            const id = String(category.id);
+
+                            const ids = formData.blog_categories_ids
+                              ? formData.blog_categories_ids.split(",")
+                              : [];
+
+                            const updated = checked
+                              ? [...ids, id]
+                              : ids.filter((item) => item !== id);
+
+                            setFormData((prev) => ({
+                              ...prev,
+                              blog_categories_ids: updated.join(","),
+                            }));
+                          }}
+                        />
+
+                        <Label
+                          htmlFor={`category-${category.id}`}
+                          className="cursor-pointer"
+                        >
+                          {category.category_name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {errors.blog_categories_ids && (
+                <p className="text-sm text-red-500">
+                  {errors.blog_categories_ids}
+                </p>
+              )}
+
+              {formData.blog_categories_ids.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.blog_categories_ids.split(",").map((id) => {
+                    const category = categories.find(
+                      (cat) => String(cat.id) === String(id),
+                    );
+
+                    return (
+                      <span
+                        key={id}
+                        className="px-2 py-1 text-xs rounded-md bg-primary/10"
+                      >
+                        {category?.category_name}
+                      </span>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
@@ -345,9 +501,7 @@ const UpdateBlog = () => {
 
             {/* Banner Image Upload */}
             <div className="space-y-4 md:col-span-2 border p-4 rounded-lg bg-gray-50/50">
-              <h3 className="font-medium text-base">
-                Blog Banner Image
-              </h3>
+              <h3 className="font-medium text-base">Blog Banner Image</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -498,7 +652,10 @@ const UpdateBlog = () => {
 
             {/* Updated Date */}
             <div className="space-y-2">
-              <Label htmlFor="blog_updated_date" className="text-sm font-medium">
+              <Label
+                htmlFor="blog_updated_date"
+                className="text-sm font-medium"
+              >
                 Updated Date
               </Label>
               <Input

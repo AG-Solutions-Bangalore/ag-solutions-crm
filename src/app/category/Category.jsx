@@ -74,7 +74,9 @@ const Category = () => {
                 if (!old?.data?.data) return old;
                 // Determine the new toggled status
                 const newStatus =
-                  row.original.category_status === "Active" ? "Inactive" : "Active";
+                  row.original.category_status === "Active"
+                    ? "Inactive"
+                    : "Active";
                 return {
                   ...old,
                   data: {
@@ -122,7 +124,7 @@ const Category = () => {
           onClick: () => setOpenCreate(true),
           label: "Create Category",
         }}
-        searchPlaceholder="Search Projects..."
+        searchPlaceholder="Search Category..."
       />
       {openEdit && (
         <CategoryModal setOpenEdit={setOpenEdit} Category={selectedCategory} />

@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Loader from "@/components/loader/loader";
 
 const CreateFaq = () => {
   const navigate = useNavigate();
@@ -34,7 +35,9 @@ const CreateFaq = () => {
     queryKey: ["page-two-dropdown"],
   });
 
-  const pageTwoOptions = Array.isArray(pageTwoData?.data) ? pageTwoData.data : (pageTwoData?.data?.data || []);
+  const pageTwoOptions = Array.isArray(pageTwoData?.data)
+    ? pageTwoData.data
+    : pageTwoData?.data?.data || [];
 
   const [formData, setFormData] = useState({
     faq_for: "",
@@ -154,7 +157,11 @@ const CreateFaq = () => {
         description="Add a new FAQ group with multiple questions and answers."
         rightContent={
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" type="button" onClick={() => navigate(-1)}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => navigate(-1)}
+            >
               Back
             </Button>
             <Button
@@ -165,8 +172,7 @@ const CreateFaq = () => {
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  <Loader />
                 </>
               ) : (
                 "Create FAQ"
@@ -196,12 +202,17 @@ const CreateFaq = () => {
                   }}
                   disabled={pageTwoLoading}
                 >
-                  <SelectTrigger className={errors.faq_for ? "border-red-500" : ""}>
+                  <SelectTrigger
+                    className={errors.faq_for ? "border-red-500" : ""}
+                  >
                     <SelectValue placeholder="Select Page..." />
                   </SelectTrigger>
                   <SelectContent>
                     {pageTwoOptions.map((page) => (
-                      <SelectItem key={page.page_two_url} value={String(page.page_two_url)}>
+                      <SelectItem
+                        key={page.page_two_url}
+                        value={String(page.page_two_url)}
+                      >
                         {page.page_two_name || `Page ${page.page_two_url}`}
                       </SelectItem>
                     ))}
@@ -218,7 +229,12 @@ const CreateFaq = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Questions & Answers</h3>
-              <Button type="button" onClick={handleAddSub} variant="outline" size="sm">
+              <Button
+                type="button"
+                onClick={handleAddSub}
+                variant="outline"
+                size="sm"
+              >
                 <Plus className="w-4 h-4 mr-2" /> Add Question
               </Button>
             </div>
@@ -252,7 +268,11 @@ const CreateFaq = () => {
                         onChange={(e) =>
                           handleSubChange(index, "faq_sort", e.target.value)
                         }
-                        className={errors[`sub_${index}_faq_sort`] ? "border-red-500" : ""}
+                        className={
+                          errors[`sub_${index}_faq_sort`]
+                            ? "border-red-500"
+                            : ""
+                        }
                       />
                     </div>
 
@@ -268,7 +288,11 @@ const CreateFaq = () => {
                         onChange={(e) =>
                           handleSubChange(index, "faq_heading", e.target.value)
                         }
-                        className={errors[`sub_${index}_faq_heading`] ? "border-red-500" : ""}
+                        className={
+                          errors[`sub_${index}_faq_heading`]
+                            ? "border-red-500"
+                            : ""
+                        }
                       />
                     </div>
 
@@ -284,7 +308,9 @@ const CreateFaq = () => {
                         onChange={(e) =>
                           handleSubChange(index, "faq_que", e.target.value)
                         }
-                        className={errors[`sub_${index}_faq_que`] ? "border-red-500" : ""}
+                        className={
+                          errors[`sub_${index}_faq_que`] ? "border-red-500" : ""
+                        }
                       />
                     </div>
 
@@ -300,7 +326,9 @@ const CreateFaq = () => {
                         onChange={(e) =>
                           handleSubChange(index, "faq_ans", e.target.value)
                         }
-                        className={errors[`sub_${index}_faq_ans`] ? "border-red-500" : ""}
+                        className={
+                          errors[`sub_${index}_faq_ans`] ? "border-red-500" : ""
+                        }
                       />
                     </div>
                   </div>
