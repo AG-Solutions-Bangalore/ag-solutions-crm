@@ -25,6 +25,7 @@ import {
   BarChart3,
   Cog,
   Gauge,
+  HelpCircle,
 } from "lucide-react";
 
 import { useMemo, useState } from "react";
@@ -68,6 +69,17 @@ const NAVIGATION_CONFIG = {
       url: "/Sponsar-list",
       icon: BadgeDollarSign,
     },
+    BLOG: {
+      title: "Blog List",
+      url: "/blog-list",
+      icon: BadgeDollarSign,
+    },
+    FAQ: {
+      title: "FAQ",
+      url: "/faq-list",
+      icon: HelpCircle,
+    },
+
     SETTINGS: {
       title: "Settings",
       url: "/settings",
@@ -91,6 +103,8 @@ const USER_ROLE_PERMISSIONS = {
       "CATEGORY",
       "SPONSAR",
       "GALLERY",
+      "BLOG",
+      "FAQ",
 
       "SETTINGS",
     ],
@@ -106,6 +120,8 @@ const USER_ROLE_PERMISSIONS = {
       "CATEGORY",
       "SPONSAR",
       "GALLERY",
+      "BLOG",
+      "FAQ",
 
       "SETTINGS",
     ],
@@ -121,6 +137,8 @@ const USER_ROLE_PERMISSIONS = {
       "CATEGORY",
       "SPONSAR",
       "GALLERY",
+      "BLOG",
+      "FAQ",
 
       "SETTINGS",
     ],

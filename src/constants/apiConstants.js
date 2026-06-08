@@ -76,7 +76,16 @@ export const GALLERYS_API={
 
 }
 export const SPONSAR_API={
-  
+  create:"/sponsor",
+  updateById: (id) => `/sponsor/${id}`,
+
+}
+export const BLOG_LIST={
+        updateStatus: (id) => `/blogs/${id}/status`,
+        create:"/blog",
+        updateById: (id) => `/blog/${id}`,
+        blogByID:(id)=>`/blog/${id}`,
+
 
 }
 export const REPORT_API = {
@@ -146,9 +155,10 @@ export const FAQ_API = {
   list: "/faq",
   create: "/faq",
   byId: (id) => `/faq/${id}`,
-  updateById: (id) => `/faq/${id}`,
-  deleteFaq: (id) => `/faqSub/${id}`,
-  updateStatus: (id) => `/faqtopStatus/${id}`,
+  updateById: (id) => `/faq/${id}?_method=PUT`,
+  deleteFaq: (id) => `/faq/${id}`,
+  deleteSub: (id) => `/faq-sub/${id}`,
+  updateStatus: (id) => `/faqs/${id}/status`,
 };
 export const BLOG_API = {
   list: "/blog",
@@ -169,7 +179,7 @@ export const GALLERY_API = {
   updateById: (id) => `/link-gallery/${id}?_method=PUT`,
 };
 export const PAGE_TWO_API = {
-  dropdown: "/page-two",
+  dropdown: "/pageTwo",
 };
 export const CHANGE_PASSWORD_API = {
   create: "/panel-change-password",

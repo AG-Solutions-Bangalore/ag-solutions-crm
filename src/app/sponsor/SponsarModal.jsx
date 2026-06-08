@@ -1,136 +1,216 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CATEGORY_API } from "@/constants/apiConstants";
+import { Label } from "@/components/ui/label";
+import { CATEGORY_API, SPONSAR_API } from "@/constants/apiConstants";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Label } from "@/components/ui/label";
+import Modal from "@/components/modal/Modal";
+import ImageUpload from "@/components/image-upload/image-upload";
 
-const SponsarModal = ({ setOpenEdit, Category }) => {
-  console.log(Category);
+import { useNavigate } from "react-router-dom";
+import Redstar from "@/components/Redstar";
+// Import your new BaseModal
+
+const SponsorModal = ({ setOpenEdit }) => {
   const queryClient = useQueryClient();
   const { trigger, loading } = useApiMutation();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    category_name: "",
-    category_status: "Active",
+    sponsors_image: "",
+    sponsors_sort: "",
+    sponsors_url: "",
   });
-  //   useEffect(() => {
-  //     if (category) {
-  //       setCategoryName(category.category_name || "");
-  //     }
-  //   }, [category]);
-//   useEffect(() => {
-//     if (Category) {
-//       setFormData({
-//         category_name: Category.category_name || "",
-//         category_status: Category.category_status || "Active",
-//       });
-//     }
-//   }, [Category]);
+  const [errors, setErrors] = useState({});
+  const [preview, setPreview] = useState({
+    sponsors_image: "",
+  });
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
 
-  const handleUpdate = async () => {
-    if (!formData.category_name.trim()) {
-      toast.error("Category name is required");
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+  };
+  const validateForm = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    if (!formData.sponsors_image) {
+      newErrors.sponsors_image = "Sonsar image is required";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+  const handleImageChange = (fieldName, file) => {
+    if (file) {
+      setFormData({ ...formData, [fieldName]: file });
+      const url = URL.createObjectURL(file);
+      setPreview({ ...preview, [fieldName]: url });
+      setErrors({ ...errors, [fieldName]: "" });
+    }
+  };
+  const handleRemoveImage = (fieldName) => {
+    setFormData({ ...formData, [fieldName]: null });
+    setPreview({ ...preview, [fieldName]: "" });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      toast.error("Please fill all the required fields");
       return;
     }
+
+    const formDataObj = new FormData();
+    formDataObj.append("sponsors_sort", formData.sponsors_sort);
+    formDataObj.append("sponsors_url", formData.sponsors_url);
+
+    if (formData.sponsors_image instanceof File) {
+      formDataObj.append("sponsors_image", formData.sponsors_image);
+    }
+
     try {
-      const response = await trigger({
-        url: CATEGORY_API.update(Category.id),
-        method: "PATCH",
-        data: {
-          category_name: formData.category_name,
-          category_status: formData.category_status,
+      const res = await trigger({
+        url: SPONSAR_API.create,
+        method: "post",
+        data: formDataObj,
+        headers: {
+          "Content-Type": "multipart/form-data",
         },
       });
 
-      queryClient.setQueryData(["category", null], (old) => {
-        if (!old?.data?.data) return old;
-
-        return {
-          ...old,
-          data: {
-            ...old.data,
-            data: old.data.data.map((item) =>
-              item.id === Category.id
-                ? {
-                    ...item,
-                    category_name: formData.category_name,
-                    category_status: formData.category_status,
-                  }
-                : item,
-            ),
-          },
-        };
-      });
-
-      toast.success(response?.message || "Category updated successfully");
-      setOpenEdit(false);
+      if (res?.code === 201 || res?.code === 200) {
+        toast.success(res?.message || "SPONSAR created successfully");
+        queryClient.invalidateQueries({ queryKey: ["sponsor"] });
+        // Adjust the route as per your routing setup
+        navigate("/Sponsar-list");
+      } else {
+        toast.error(res?.message || "Failed to create project");
+      }
     } catch (error) {
-      toast.error("Failed to update category");
+      const errorsMsg = error?.response?.data?.message;
+      toast.error(errorsMsg || "Something went wrong");
     }
   };
 
+  // Sync data whenever the Category prop changes
+
+  // const handleUpdate = async () => {
+  //   if (!formData.sponsors_image.trim()) {
+  //     toast.error("Category name is required");
+  //     return;
+  //   }
+
+  //   try {
+  //     const response = await trigger({
+  //       url: SPONSAR_API.create(),
+  //       method: "POST",
+  //       data: {
+  //         category_name: formData.category_name,
+  //         category_status: formData.category_status,
+  //       },
+  //     });
+
+  //     queryClient.setQueryData(["category", null], (old) => {
+  //       if (!old?.data?.data) return old;
+  //       return {
+  //         ...old,
+  //         data: {
+  //           ...old.data,
+  //           data: old.data.data.map((item) =>
+  //             item.id === Category.id
+  //               ? {
+  //                   ...item,
+  //                   category_name: formData.category_name,
+  //                   category_status: formData.category_status,
+  //                 }
+  //               : item,
+  //           ),
+  //         },
+  //       };
+  //     });
+
+  //     toast.success(response?.message || "Category updated successfully");
+  //     setOpenEdit(false);
+  //   } catch (error) {
+  //     toast.error("Failed to update category");
+  //   }
+  // };
+
   return (
-    <Dialog open={true} onOpenChange={() => setOpenEdit(false)}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Category</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-2 py-4">
-          <label className="text-sm font-medium">Category Name</label>
-
-          <Input
-            value={formData.category_name}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                category_name: e.target.value,
-              })
-            }
-            placeholder="Enter Category name"
-          />
-        </div>
+    <Modal
+      open={true}
+      onClose={() => setOpenEdit(false)}
+      title="Create Sponsar"
+      onSubmit={handleSubmit}
+      submitText="Create"
+      isLoading={loading}
+      maxWidthClass="sm:max-w-md"
+    >
+      {/* Custom fields specific only to this modal */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Status</Label>
-          <select
-            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            value={formData.category_status}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                category_status: e.target.value,
-              })
+          <Label htmlFor="sponsors_image" className="text-sm font-medium">
+            Upload Image
+          </Label>
+          <ImageUpload
+            id="sponsors_image"
+            label=""
+            selectedFile={formData.sponsors_image}
+            previewImage={preview.sponsors_image}
+            onFileChange={(e) =>
+              handleImageChange("sponsors_image", e.target.files?.[0])
             }
-          >
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
+            onRemove={() => handleRemoveImage("sponsors_image")}
+            error={errors.sponsors_image}
+            maxSize={5}
+          />
+          {errors.sponsors_image && (
+            <p className="text-sm text-red-500 mt-1">{errors.sponsors_image}</p>
+          )}
         </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="project_name" className="text-sm font-medium">
+          Sponsar sort <Redstar />
+        </Label>
+        <Input
+          id="sponsors_sort"
+          name="sponsors_sort"
+          type="text"
+          placeholder="Enter project name"
+          value={formData.sponsors_sort}
+          onChange={handleInputChange}
+        />
+      </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpenEdit(false)}>
-            Cancel
-          </Button>
-
-          <Button onClick={handleUpdate} disabled={loading}>
-            {loading ? "Updating..." : "Update"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <div className="space-y-2">
+        <Label htmlFor="project_name" className="text-sm font-medium">
+          Sponsors Url <Redstar />
+        </Label>
+        <Input
+          id="sponsors_url"
+          name="sponsors_url"
+          type="text"
+          placeholder="Enter project name"
+          value={formData.sponsors_url}
+          onChange={handleInputChange}
+        />
+      </div>
+    </Modal>
   );
 };
 
-export default SponsarModal;
+export default SponsorModal;

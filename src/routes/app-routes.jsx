@@ -18,6 +18,12 @@ import CreateCategory from "@/app/category/createCategory";
 import GalleryList from "@/app/gallery/gallery-list";
 import { SPONSAR_API } from "@/constants/apiConstants";
 import Sponsor from "@/app/sponsor/sponsor";
+import BlogList from "@/app/blog/BlogList";
+import CreateBlog from "@/app/blog/CreateBlog";
+import UpdateBlog from "@/app/blog/UpdateBlog";
+import FaqList from "@/app/faq/FaqList";
+import CreateFaq from "@/app/faq/CreateFaq";
+import UpdateFaq from "@/app/faq/UpdateFaq";
 
 function AppRoutes() {
   return (
@@ -36,11 +42,20 @@ function AppRoutes() {
               </Suspense>
             }
           />
+
           <Route
             path="/gallery-list"
             element={
               <Suspense fallback={<LoadingBar />}>
                 <GalleryList />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/create-blog"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <CreateBlog />
               </Suspense>
             }
           />
@@ -71,6 +86,22 @@ function AppRoutes() {
           />
 
           <Route
+            path="/blog-list"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <BlogList />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/blog-edit/:id"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <UpdateBlog />
+              </Suspense>
+            }
+          />
+          <Route
             path="/create-project"
             element={
               <Suspense fallback={<LoadingBar />}>
@@ -78,7 +109,6 @@ function AppRoutes() {
               </Suspense>
             }
           />
-
           <Route
             path="/newsLetter"
             element={
@@ -108,6 +138,30 @@ function AppRoutes() {
             element={
               <Suspense fallback={<LoadingBar />}>
                 <Settings />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/faq-list"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <FaqList />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/create-faq"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <CreateFaq />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/faq-edit/:id"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <UpdateFaq />
               </Suspense>
             }
           />
