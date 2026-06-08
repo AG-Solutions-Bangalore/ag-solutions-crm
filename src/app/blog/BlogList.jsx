@@ -39,7 +39,7 @@ const BlogList = () => {
   // --- Fetch Blogs (Mock Query - adjust URL/key to match your architecture) ---
   const { data, isLoading, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/blog`,
-    queryKey: ["blog", null],
+    queryKey: ["blog"],
   });
 
   // --- Modal Open Handlers ---
@@ -154,7 +154,17 @@ const BlogList = () => {
     {
       header: "Created Date",
       accessorKey: "blog_created_date",
-      cell: ({ row }) => <span>{row.original.blog_created_date}</span>,
+      cell: ({ row }) => {
+        const date = new Date(row.original.blog_created_date);
+
+        return (
+          <span>
+            {`${String(date.getDate()).padStart(2, "0")}-${String(
+              date.getMonth() + 1,
+            ).padStart(2, "0")}-${date.getFullYear()}`}
+          </span>
+        );
+      },
     },
 
     // {
@@ -230,22 +240,22 @@ const BlogList = () => {
   ];
   return (
     <div>
-        {isLoading ? (
-          <Loader />
-        ) : error ? (
-          <div className="text-red-500">Error loading blogs</div>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={data?.data?.data || []}
-            pageSize={10}
-            addButton={{
-              onClick: () => navigate("/create-blog"),
-              label: "Create Blog",
-            }}
-            searchPlaceholder="Search Blogs..."
-          />
-        )}
+      {isLoading ? (
+        <Loader />
+      ) : error ? (
+        <div className="text-red-500">Error loading blogs</div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={data?.data?.data || []}
+          pageSize={10}
+          addButton={{
+            onClick: () => navigate("/create-blog"),
+            label: "Create Blog",
+          }}
+          searchPlaceholder="Search Blogs..."
+        />
+      )}
       {/* {openCreate && <CreateBlog setOpenEdit={setOpenCreate} />} */}
       {/* 4. Render the Create Category Modal */}
       {/* {openCreate && <CreateCategoryModal setOpenCreate={setOpenCreate} />} */}

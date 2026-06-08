@@ -94,10 +94,11 @@ const SponsarEdit = ({ setOpenEdit, selectedSponsar, sponsorsBaseUrl }) => {
       formDataObj.append("sponsors_image", formData.sponsors_image);
     }
     console.log("form data", formDataObj);
+    formDataObj.append("_method", "PUT");
     try {
       const res = await trigger({
         url: SPONSAR_API.updateById(selectedSponsar.id),
-        method: "PUT",
+        method: "POST",
         data: formDataObj,
         headers: {
           "Content-Type": "multipart/form-data",

@@ -29,12 +29,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import Loader from "@/components/loader/loader";
 
 const CreateBlog = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { trigger, loading } = useApiMutation();
-  const [selectedCategories, setSelectedCategories] = useState([]);
   const [preview, setPreview] = useState({
     blog_banner_image: "",
   });
@@ -99,7 +99,7 @@ const CreateBlog = () => {
     blog_description: "",
     blog_banner_image: null,
     blog_banner_image_alt: "",
-    blog_categories_ids: [],
+    blog_categories_ids: "",
     blog_front: "",
     blog_featured: "No", // Default to No
   });
@@ -172,24 +172,43 @@ const CreateBlog = () => {
       return;
     }
 
-    const formDataObj = new FormData();
+    // Object.keys(formData).forEach((key) => {
+    //   if (key === "blog_categories_ids") {
+    //     formDataObj.append(
+    //       "blog_categories_ids",
+    //       JSON.stringify(formData.blog_categories_ids.map(Number)),
+    //     );
+    //   } else {
+    //     formDataObj.append(key, formData[key]);
+    //   }
+    const payload = new FormData();
 
-    Object.keys(formData).forEach((key) => {
-      if (key === "blog_categories_ids") {
-        formDataObj.append(
-          "blog_categories_ids",
-          JSON.stringify(formData.blog_categories_ids.map(Number)),
-        );
-      } else {
-        formDataObj.append(key, formData[key]);
-      }
-    });
+    payload.append("blog_slug", formData.blog_slug);
+    payload.append("blog_index", formData.blog_index);
+    payload.append("blog_meta_keywords", formData.blog_meta_keywords);
+    payload.append("blog_title", formData.blog_title);
+    payload.append("blog_short_description", formData.blog_short_description);
+    payload.append("blog_description", formData.blog_description);
+    payload.append("blog_banner_image_alt", formData.blog_banner_image_alt);
+    payload.append("blog_updated_date", formData.blog_updated_date);
+    payload.append("blog_front", formData.blog_front);
+    payload.append("blog_featured", formData.blog_featured);
+    payload.append("blog_status", formData.blog_status);
+
+    if (formData.blog_banner_image instanceof File) {
+      payload.append("blog_banner_image", formData.blog_banner_image);
+    }
+    payload.append(
+      "blog_categories_ids",
+      formData.blog_categories_ids,
+      // JSON.stringify(formData.blog_categories_ids.map(Number).join(",")),
+    );
 
     try {
       const res = await trigger({
         url: BLOG_LIST.create,
         method: "post",
-        data: formDataObj,
+        data: payload,
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -197,7 +216,7 @@ const CreateBlog = () => {
 
       if (res?.code === 201 || res?.code === 200) {
         toast.success(res?.message || "Blog created successfully");
-        queryClient.invalidateQueries(["blog", null]);
+        queryClient.invalidateQueries(["blog"]);
         navigate("/blog-list"); // Change this to your actual blog list route
       } else {
         toast.error(res?.message || "Failed to create Blog");
@@ -231,8 +250,7 @@ const CreateBlog = () => {
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  <Loader />
                 </>
               ) : (
                 "Create Blog"
@@ -302,7 +320,7 @@ const CreateBlog = () => {
                     className="w-full justify-between"
                   >
                     {formData.blog_categories_ids.length > 0
-                      ? `${formData.blog_categories_ids.length} Categories Selected`
+                      ? `${formData.blog_categories_ids.split(",").length} Categories Selected`
                       : "Select Categories"}
                   </Button>
                 </PopoverTrigger>
@@ -316,19 +334,27 @@ const CreateBlog = () => {
                       >
                         <Checkbox
                           id={`category-${category.id}`}
-                          checked={formData.blog_categories_ids.includes(
-                            String(category.id),
-                          )}
+                          checked={
+                            formData.blog_categories_ids
+                              ? formData.blog_categories_ids
+                                  .split(",")
+                                  .includes(String(category.id))
+                              : false
+                          }
                           onCheckedChange={(checked) => {
                             const id = String(category.id);
 
+                            const ids = formData.blog_categories_ids
+                              ? formData.blog_categories_ids.split(",")
+                              : [];
+
+                            const updated = checked
+                              ? [...ids, id]
+                              : ids.filter((item) => item !== id);
+
                             setFormData((prev) => ({
                               ...prev,
-                              blog_categories_ids: checked
-                                ? [...prev.blog_categories_ids, id]
-                                : prev.blog_categories_ids.filter(
-                                    (item) => item !== id,
-                                  ),
+                              blog_categories_ids: updated.join(","),
                             }));
 
                             setErrors((prev) => ({
@@ -358,7 +384,7 @@ const CreateBlog = () => {
 
               {formData.blog_categories_ids.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {formData.blog_categories_ids.map((id) => {
+                  {formData.blog_categories_ids.split(",").map((id) => {
                     const category = categories.find(
                       (cat) => String(cat.id) === String(id),
                     );

@@ -27,10 +27,9 @@ const EnquiryList = () => {
 
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error, refetch } = useGetApiMutation({
+  const { data, isLoading, error } = useGetApiMutation({
     url: `${BASE_URL}/enquiry`,
     queryKey: ["enquiry"],
-    
   });
 
   const { trigger: deleteTrigger } = useApiMutation();
@@ -42,16 +41,8 @@ const EnquiryList = () => {
         method: "delete",
       });
       if (res?.code === 200 || res?.code === 201) {
-        queryClient.setQueryData(["enquiry", null], (old) => {
-          if (!old?.data?.data) return old;
-
-          return {
-            ...old,
-            data: {
-              ...old.data,
-              data: old.data.data.filter((item) => item.id !== id),
-            },
-          };
+        queryClient.invalidateQueries({
+          queryKey: ["enquiry"],
         });
         toast.success(res?.message || "Enquiry deleted successfully");
       } else {
@@ -103,15 +94,9 @@ const EnquiryList = () => {
         <span className="text-gray-600">{row.original.enquiryMessage}</span>
       ),
     },
+
     {
-      header: "medium",
-      accessorKey: "utm_medium",
-      cell: ({ row }) => (
-        <span className="text-gray-600">{row.original.utm_medium || "-"}</span>
-      ),
-    },
-    {
-      header: "medium",
+      header: "Medium",
       accessorKey: "utm_medium",
       cell: ({ row }) => (
         <span className="text-gray-600">{row.original.utm_medium || "-"}</span>

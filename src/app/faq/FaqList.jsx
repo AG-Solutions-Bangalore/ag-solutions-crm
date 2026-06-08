@@ -20,6 +20,7 @@ import {
 
 import DataTable from "@/components/common/data-table";
 import ToggleStatus from "@/components/toogle/status-toogle";
+import Loader from "@/components/loader/loader";
 
 const FaqList = () => {
   const queryClient = useQueryClient();
@@ -80,22 +81,27 @@ const FaqList = () => {
             payloadKey="faq_status"
             method="patch"
             onSuccess={() => {
-              queryClient.setQueryData(["faq", pageIndex, { page: pageIndex + 1 }], (old) => {
-                if (!old?.data?.data) return old;
-                const newStatus =
-                  row.original.faq_status === "Active" ? "Inactive" : "Active";
-                return {
-                  ...old,
-                  data: {
-                    ...old.data,
-                    data: old.data.data.map((item) =>
-                      item.id === row.original.id
-                        ? { ...item, faq_status: newStatus }
-                        : item,
-                    ),
-                  },
-                };
-              });
+              queryClient.setQueryData(
+                ["faq", pageIndex, { page: pageIndex + 1 }],
+                (old) => {
+                  if (!old?.data?.data) return old;
+                  const newStatus =
+                    row.original.faq_status === "Active"
+                      ? "Inactive"
+                      : "Active";
+                  return {
+                    ...old,
+                    data: {
+                      ...old.data,
+                      data: old.data.data.map((item) =>
+                        item.id === row.original.id
+                          ? { ...item, faq_status: newStatus }
+                          : item,
+                      ),
+                    },
+                  };
+                },
+              );
             }}
           />
         </span>
@@ -120,7 +126,7 @@ const FaqList = () => {
   ];
 
   if (isLoading) {
-    return <div className="p-6">Loading...</div>;
+    return <Loader />;
   }
 
   if (error) {
@@ -151,8 +157,8 @@ const FaqList = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              FAQ group.
+              This action cannot be undone. This will permanently delete the FAQ
+              group.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
