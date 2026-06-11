@@ -57,11 +57,15 @@ const UpdateFaq = () => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    if (!faqData?.data) return;
-    const faq = faqData.data;
+    if (!faqData) return;
+
+    // Handle nested data structure: API response might be { data: { ... } } or { data: { data: { ... } } }
+    const faq = faqData?.data?.data || faqData?.data;
+
+    if (!faq) return;
 
     setFormData({
-      faq_for: faq.faq_for || "",
+      faq_for: String(faq.faq_for || ""),
       faq_status: faq.faq_status || "Active",
     });
 
@@ -143,10 +147,10 @@ const UpdateFaq = () => {
         newErrors[`sub_${index}_faq_sort`] = "Required";
         isValid = false;
       }
-      if (!sub.faq_heading) {
-        newErrors[`sub_${index}_faq_heading`] = "Required";
-        isValid = false;
-      }
+      // if (!sub.faq_heading) {
+      //   newErrors[`sub_${index}_faq_heading`] = "Required";
+      //   isValid = false;
+      // }
       if (!sub.faq_que) {
         newErrors[`sub_${index}_faq_que`] = "Required";
         isValid = false;
@@ -365,9 +369,7 @@ const UpdateFaq = () => {
 
                     {/* Heading */}
                     <div className="space-y-2 md:col-span-1">
-                      <Label className="text-sm font-medium">
-                        Heading <Redstar />
-                      </Label>
+                      <Label className="text-sm font-medium">Heading</Label>
                       <Input
                         type="text"
                         placeholder="Enter heading..."

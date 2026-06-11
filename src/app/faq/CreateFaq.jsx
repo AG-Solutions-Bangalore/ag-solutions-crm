@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { FilePlus, Loader2, Plus, Trash2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { FAQ_API, PAGE_TWO_API } from "@/constants/apiConstants";
 import { useApiMutation } from "@/hooks/useApiMutation";
@@ -27,6 +27,7 @@ import Loader from "@/components/loader/loader";
 
 const CreateFaq = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { trigger, loading } = useApiMutation();
 
   // Fetch FAQ For (Page Two Dropdown)
@@ -91,10 +92,10 @@ const CreateFaq = () => {
         newErrors[`sub_${index}_faq_sort`] = "Required";
         isValid = false;
       }
-      if (!sub.faq_heading) {
-        newErrors[`sub_${index}_faq_heading`] = "Required";
-        isValid = false;
-      }
+      // if (!sub.faq_heading) {
+      //   newErrors[`sub_${index}_faq_heading`] = "Required";
+      //   isValid = false;
+      // }
       if (!sub.faq_que) {
         newErrors[`sub_${index}_faq_que`] = "Required";
         isValid = false;
@@ -139,6 +140,7 @@ const CreateFaq = () => {
 
       if (res?.code === 201 || res?.code === 200) {
         toast.success(res?.message || "FAQ created successfully");
+        queryClient.invalidateQueries(["faq"]);
         navigate("/faq-list");
       } else {
         toast.error(res?.message || "Failed to create FAQ");
