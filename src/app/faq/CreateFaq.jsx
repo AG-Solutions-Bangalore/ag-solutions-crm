@@ -280,9 +280,7 @@ const CreateFaq = () => {
 
                     {/* Heading */}
                     <div className="space-y-2 md:col-span-1">
-                      <Label className="text-sm font-medium">
-                        Heading <Redstar />
-                      </Label>
+                      <Label className="text-sm font-medium">Heading</Label>
                       <Input
                         type="text"
                         placeholder="Enter heading..."
