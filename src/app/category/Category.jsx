@@ -129,7 +129,7 @@ const Category = () => {
       {openEdit && (
         <CategoryModal setOpenEdit={setOpenEdit} Category={selectedCategory} />
       )}
-
+X
       {/* 4. Render the Create Category Modal */}
       {openCreate && <CreateCategoryModal setOpenCreate={setOpenCreate} />}
 

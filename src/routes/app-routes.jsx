@@ -24,6 +24,7 @@ import UpdateBlog from "@/app/blog/UpdateBlog";
 import FaqList from "@/app/faq/FaqList";
 import CreateFaq from "@/app/faq/CreateFaq";
 import UpdateFaq from "@/app/faq/UpdateFaq";
+import Campaign from "@/app/campaign/campaign";
 
 function AppRoutes() {
   return (
@@ -39,6 +40,14 @@ function AppRoutes() {
             element={
               <Suspense fallback={<LoadingBar />}>
                 <Dashboard />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/campaign-visit"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Campaign />
               </Suspense>
             }
           />
