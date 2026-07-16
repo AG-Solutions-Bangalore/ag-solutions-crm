@@ -70,6 +70,9 @@ export const PROJECT_API = {
   create: "/project",
   updateSort:(id)=>`/projects/${id}/sort`
 };
+export const CAMPAING_API = {
+  deleteById: (id) => `/campaign-visit/${id}`,
+};
 export const GALLERYS_API={
 
 

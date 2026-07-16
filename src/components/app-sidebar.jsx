@@ -49,6 +49,11 @@ const NAVIGATION_CONFIG = {
       url: "/projects",
       icon: MapPinHouse,
     },
+    CAMPAIGN: {
+      title: "Campaign",
+      url: "/campaign-visit",
+      icon: MapPinHouse,
+    },
     NEWSLEETER: {
       title: "NewsLetter",
       url: "/newsLetter",
@@ -99,6 +104,7 @@ const USER_ROLE_PERMISSIONS = {
       "DASHBOARD",
       "ENQUIRIES",
       "PROJECTS",
+      "CAMPAIGN",
       "NEWSLEETER",
       "CATEGORY",
       "SPONSAR",
@@ -115,6 +121,7 @@ const USER_ROLE_PERMISSIONS = {
     navMain: [
       "DASHBOARD",
       "ENQUIRIES",
+      "CAMPAIGN",
       "PROJECTS",
       "NEWSLEETER",
       "CATEGORY",
@@ -133,6 +140,7 @@ const USER_ROLE_PERMISSIONS = {
       "DASHBOARD",
       "ENQUIRIES",
       "PROJECTS",
+      "CAMPAIGN",
       "NEWSLEETER",
       "CATEGORY",
       "SPONSAR",
