@@ -1,5 +1,6 @@
 import { useApiMutation } from "@/hooks/useApiMutation";
-import { RefreshCcw } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -10,15 +11,23 @@ const ToggleStatus = ({
   activeValue = "Active",
   inactiveValue = "Inactive",
   method = "PUT",
+  showLabel = true,
   onSuccess,
 }) => {
   const [status, setStatus] = useState(initialStatus);
   const { trigger, loading } = useApiMutation();
+
   useEffect(() => {
     setStatus(initialStatus);
   }, [initialStatus]);
-  const handleToggle = async () => {
-    const newStatus = status === activeValue ? inactiveValue : activeValue;
+
+  const isActive = status === activeValue;
+
+  const handleToggle = async (checked) => {
+    const newStatus = checked ? activeValue : inactiveValue;
+    // optimistic update
+    const previousStatus = status;
+    setStatus(newStatus);
 
     try {
       const res = await trigger({
@@ -32,30 +41,42 @@ const ToggleStatus = ({
       if (res?.code === 200 || res?.code === 201) {
         setStatus(newStatus);
         onSuccess?.();
-
-        toast.success(res.message);
+        toast.success(res?.message || `Status updated to ${newStatus}`);
       } else {
+        setStatus(previousStatus); // revert
         toast.error(res?.message || "Unable to update status");
       }
     } catch (err) {
+      setStatus(previousStatus); // revert
       toast.error(err?.message || "Unable to update status");
     }
   };
 
   return (
-    <button
-      onClick={handleToggle}
-      disabled={loading}
-      className={`inline-flex items-center gap-1 px-2 py-2 rounded transition-colors
-        ${
-          status === activeValue
-            ? "text-green-800 hover:bg-green-100"
-            : "text-red-800 hover:bg-red-100"
-        }`}
-    >
-      <RefreshCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-      <span className="text-sm font-medium">{status}</span>
-    </button>
+    <div className="flex items-center gap-2">
+      <div className="relative inline-flex items-center">
+        <Switch
+          checked={isActive}
+          onCheckedChange={handleToggle}
+          disabled={loading}
+          className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-muted-foreground/30 h-5 w-9 transition-colors cursor-pointer"
+        />
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-full pointer-events-none">
+            <Loader2 className="h-3 w-3 animate-spin text-primary" />
+          </div>
+        )}
+      </div>
+      {showLabel && (
+        <span
+          className={`text-[11px] font-semibold select-none ${
+            isActive ? "text-emerald-500" : "text-muted-foreground"
+          }`}
+        >
+          {status}
+        </span>
+      )}
+    </div>
   );
 };
 

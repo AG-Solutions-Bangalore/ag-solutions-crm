@@ -7,6 +7,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -23,27 +30,38 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import {
+  ArrowDown,
+  ArrowUp,
   ArrowUpDown,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronUp,
+  Inbox,
+  Loader2,
+  Plus,
   Search,
-  SquarePlus,
+  SlidersHorizontal,
+  X,
 } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 
 const DataTable = ({
   data = [],
   columns = [],
   filterProjects,
   pageSize = 10,
-  searchPlaceholder = "Search...",
+  searchPlaceholder = "Search records...",
   addButton,
   extraButton,
   expandableRow,
   serverPagination,
+  isLoading = false,
+  isFetching = false,
   hideSearch = false,
   hideColumns = false,
 }) => {
@@ -57,32 +75,41 @@ const DataTable = ({
     pageSize,
   });
 
+  // Sync pageSize prop when changed
+  useEffect(() => {
+    setPagination((prev) => ({
+      ...prev,
+      pageSize,
+    }));
+  }, [pageSize]);
+
   const table = useReactTable({
-    data,
-    columns,
+    data: data || [],
+    columns: columns || [],
     state: {
       sorting,
       globalFilter,
       pagination: isServer
         ? {
-            pageIndex: serverPagination.pageIndex,
-            pageSize,
+            pageIndex: serverPagination?.pageIndex ?? 0,
+            pageSize: pageSize,
           }
         : pagination,
     },
     manualPagination: isServer,
-    pageCount: isServer ? serverPagination.pageCount : undefined,
+    pageCount: isServer ? (serverPagination?.pageCount ?? 1) : undefined,
+    autoResetPageIndex: true,
     onPaginationChange: isServer
       ? (updater) => {
           const next =
             typeof updater === "function"
               ? updater({
-                  pageIndex: serverPagination.pageIndex,
+                  pageIndex: serverPagination.pageIndex ?? 0,
                   pageSize,
                 })
               : updater;
 
-          serverPagination.onPageChange(next.pageIndex);
+          serverPagination.onPageChange?.(next.pageIndex);
         }
       : setPagination,
     onSortingChange: setSorting,
@@ -96,60 +123,164 @@ const DataTable = ({
   const toggleRow = (rowId) => {
     setExpandedRows((prev) => (prev[rowId] ? {} : { [rowId]: true }));
   };
+
   const handlePageSizeChange = (size) => {
+    const numSize = Number(size);
     if (isServer) {
-      serverPagination.onPageSizeChange?.(size);
-      serverPagination.onPageChange(0);
+      serverPagination.onPageSizeChange?.(numSize);
+      serverPagination.onPageChange?.(0);
     } else {
-      setPagination({
-        pageIndex: 0,
-        pageSize: size,
-      });
+      table.setPageSize(numSize);
+      table.setPageIndex(0);
     }
   };
 
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+    if (isServer) {
+      serverPagination.onSearch?.(value);
+      serverPagination.onPageChange?.(0);
+    } else {
+      setGlobalFilter(value);
+      table.setPageIndex(0);
+    }
+  };
+
+  const handleClearSearch = () => {
+    handleSearchChange("");
+  };
+
+  // Pagination calculation
+  const totalItems = isServer
+    ? (serverPagination?.total ?? (data?.length || 0))
+    : table.getFilteredRowModel().rows.length;
+
+  const totalPages = isServer
+    ? Math.max(1, serverPagination?.pageCount ?? Math.ceil(totalItems / (pageSize || 10)) ?? 1)
+    : Math.max(1, table.getPageCount() || 1);
+
+  const currentPage = isServer
+    ? (serverPagination?.pageIndex ?? 0)
+    : table.getState().pagination.pageIndex;
+
+  const currentPageSize = isServer
+    ? pageSize
+    : table.getState().pagination.pageSize;
+
+  const startRecord = totalItems === 0 ? 0 : currentPage * currentPageSize + 1;
+  const endRecord = Math.min((currentPage + 1) * currentPageSize, totalItems);
+
+  // Pagination item list generator
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i);
+    }
+    if (currentPage < 4) {
+      return [0, 1, 2, 3, 4, "...", totalPages - 1];
+    }
+    if (currentPage >= totalPages - 4) {
+      return [
+        0,
+        "...",
+        totalPages - 5,
+        totalPages - 4,
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+      ];
+    }
+    return [
+      0,
+      "...",
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      "...",
+      totalPages - 1,
+    ];
+  }, [currentPage, totalPages]);
+
+  const handlePageSelect = (pageIndex) => {
+    if (isServer) {
+      serverPagination.onPageChange?.(pageIndex);
+    } else {
+      table.setPageIndex(pageIndex);
+    }
+  };
+
+  const canPrevious = isServer
+    ? currentPage > 0
+    : table.getCanPreviousPage();
+
+  const canNext = isServer
+    ? currentPage < totalPages - 1
+    : table.getCanNextPage();
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between py-1">
-        {!hideSearch && (
-          <div className="relative w-64">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-            <Input
-              value={searchValue}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSearchValue(value);
+    <motion.div
+      initial={{ opacity: 0, filter: "blur(10px)", y: 12 }}
+      animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-4 w-full"
+    >
+      {/* 🔹 Top Control Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex flex-1 flex-wrap items-center gap-3">
+          {!hideSearch && (
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={searchValue}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder={searchPlaceholder}
+                className="pl-9 pr-8 h-9 text-xs rounded-lg border-border bg-background shadow-2xs focus-visible:ring-1 opacity-100"
+              />
+              {searchValue && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
 
-                if (isServer) {
-                  serverPagination.onSearch?.(value);
-                  serverPagination.onPageChange(0);
-                } else {
-                  setGlobalFilter(value);
-                }
-              }}
-              placeholder={searchPlaceholder}
-              className="pl-8 h-9 text-sm bg-gray-50 border-gray-200"
-            />
-          </div>
-        )}
+          {filterProjects && (
+            <div className="flex items-center gap-2">{filterProjects}</div>
+          )}
 
-        {filterProjects}
-        <div className="flex items-center gap-2">
+          {isFetching && !isLoading && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground animate-pulse">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Updating...</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 justify-end">
           {!hideColumns && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  Columns <ChevronDown className="ml-2 h-3 w-3" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 rounded-lg border-border text-xs font-medium bg-background opacity-100"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  <span>Columns</span>
+                  <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-lg border border-border bg-popover/95 backdrop-blur-md">
                 {table
                   .getAllColumns()
                   .filter((column) => column.getCanHide())
                   .map((column) => {
                     const columnDef = columns.find(
                       (col) =>
-                        col.accessorKey === column.id || col.id === column.id,
+                        col.accessorKey === column.id || col.id === column.id
                     );
                     return (
                       <DropdownMenuCheckboxItem
@@ -158,9 +289,11 @@ const DataTable = ({
                         onCheckedChange={(value) =>
                           column.toggleVisibility(!!value)
                         }
-                        className="text-xs capitalize"
+                        className="text-xs capitalize cursor-pointer"
                       >
-                        {columnDef?.header || column.id}
+                        {typeof columnDef?.header === "string"
+                          ? columnDef.header
+                          : column.id}
                       </DropdownMenuCheckboxItem>
                     );
                   })}
@@ -171,185 +304,291 @@ const DataTable = ({
           {addButton &&
             (addButton.to ? (
               <Link to={addButton.to}>
-                <Button variant="default" size="sm" className="h-9">
-                  <SquarePlus className="h-3 w-3 mr-2" />
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5 rounded-lg shadow-xs font-medium text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-100"
+                >
+                  <Plus className="h-4 w-4" />
                   {addButton.label}
                 </Button>
               </Link>
             ) : (
               <Button
-                variant="default"
                 size="sm"
-                className="h-9"
+                className="h-9 gap-1.5 rounded-lg shadow-xs font-medium text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-100"
                 onClick={addButton.onClick}
               >
-                <SquarePlus className="h-3 w-3 mr-2" />
+                <Plus className="h-4 w-4" />
                 {addButton.label}
               </Button>
             ))}
+
           {extraButton}
         </div>
       </div>
-      <div className="rounded-none border min-h-[31rem]">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id}>
-                {expandableRow && <TableHead className="w-10" />}
-                {/* {hg.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
-                    )}
-                  </TableHead>
-                ))} */}
-                {hg.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    onClick={
-                      header.column.getCanSort()
-                        ? header.column.getToggleSortingHandler()
-                        : undefined
-                    }
-                    className={
-                      header.column.getCanSort()
-                        ? "cursor-pointer select-none"
-                        : ""
-                    }
+
+      {/* 🔹 Glassmorphic Table Container */}
+      <motion.div
+        key={`table-container-${currentPage}`}
+        initial={{ opacity: 0, filter: "blur(6px)" }}
+        animate={{ opacity: 1, filter: "blur(0px)" }}
+        transition={{ duration: 0.3 }}
+        className="relative rounded-xl border border-border bg-card/95 backdrop-blur-md text-card-foreground shadow-2xs overflow-hidden opacity-100"
+      >
+        {/* Shimmer loading bar */}
+        {isFetching && (
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-primary/20 overflow-hidden z-20">
+            <div className="w-full h-full bg-primary origin-left animate-pulse" />
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-muted/60 backdrop-blur-sm border-b border-border">
+              {table.getHeaderGroups().map((hg) => (
+                <TableRow key={hg.id} className="border-b border-border hover:bg-transparent">
+                  {expandableRow && <TableHead className="w-10" />}
+                  {hg.headers.map((header) => {
+                    const canSort = header.column.getCanSort();
+                    const isSorted = header.column.getIsSorted();
+
+                    return (
+                      <TableHead
+                        key={header.id}
+                        onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                        className={`h-11 px-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider ${
+                          canSort ? "cursor-pointer select-none hover:text-foreground transition-colors" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+
+                          {canSort && (
+                            <span className="inline-flex">
+                              {isSorted === "asc" ? (
+                                <ArrowUp className="h-3.5 w-3.5 text-primary shrink-0 font-bold" />
+                              ) : isSorted === "desc" ? (
+                                <ArrowDown className="h-3.5 w-3.5 text-primary shrink-0 font-bold" />
+                              ) : (
+                                <ArrowUpDown className="h-3.5 w-3.5 opacity-30 hover:opacity-100 shrink-0" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length + (expandableRow ? 1 : 0) + 1}
+                    className="h-56 text-center"
                   >
-                    <div className="flex items-center gap-1">
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
+                    <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                      <p className="text-xs font-medium">Loading records...</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows.length ? (
+                table.getRowModel().rows.map((row, index) => (
+                  <Fragment key={row.id}>
+                    <motion.tr
+                      initial={{ opacity: 0, filter: "blur(4px)", y: 4 }}
+                      animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+                      transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.25) }}
+                      className="border-b border-border/60 hover:bg-accent/40 transition-colors opacity-100"
+                    >
+                      {expandableRow && (
+                        <TableCell className="w-10 p-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleRow(row.id)}
+                            className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {expandedRows[row.id] ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </button>
+                        </TableCell>
                       )}
 
-                      {header.column.getCanSort() && (
-                        <>
-                          {/* {header.column.getIsSorted() === "asc" && (
-                            <ChevronUp className="h-3 w-3" />
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} className="py-3 px-4 text-xs text-foreground opacity-100">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
                           )}
-                          {header.column.getIsSorted() === "desc" && (
-                            <ChevronDown className="h-3 w-3" />
-                          )}
-                          {!header.column.getIsSorted() && ( */}
-                          <ArrowUpDown className="h-3 w-3 opacity-40" />
-                          {/* // )} */}
-                        </>
+                        </TableCell>
+                      ))}
+                    </motion.tr>
+
+                    {expandedRows[row.id] && expandableRow && (
+                      <TableRow className="bg-muted/20 border-b border-border/60">
+                        <TableCell
+                          colSpan={
+                            row.getVisibleCells().length + (expandableRow ? 1 : 0)
+                          }
+                          className="p-4"
+                        >
+                          {expandableRow(row.original)}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length + (expandableRow ? 1 : 0) + 1}
+                    className="h-52 text-center"
+                  >
+                    <div className="flex flex-col items-center justify-center gap-2.5 text-muted-foreground">
+                      <Inbox className="h-9 w-9 stroke-1 text-muted-foreground/60" />
+                      <p className="text-xs font-medium">No records found</p>
+                      {searchValue && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={handleClearSearch}
+                          className="h-auto p-0 text-xs text-primary"
+                        >
+                          Clear search filter
+                        </Button>
                       )}
                     </div>
-                  </TableHead>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </motion.div>
+
+      {/* 🔹 Enhanced Pagination Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-1 px-1 text-xs opacity-100">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <span>
+            Showing <strong className="text-foreground font-semibold">{startRecord}</strong> to{" "}
+            <strong className="text-foreground font-semibold">{endRecord}</strong> of{" "}
+            <strong className="text-foreground font-semibold">{totalItems}</strong> entries
+          </span>
+
+          <div className="flex items-center gap-1.5 border-l border-border pl-3">
+            <span className="text-muted-foreground hidden sm:inline">Rows per page:</span>
+            <Select
+              value={String(currentPageSize)}
+              onValueChange={handlePageSizeChange}
+            >
+              <SelectTrigger className="h-8 w-18 text-xs rounded-lg border-border bg-background shadow-2xs">
+                <SelectValue placeholder={String(currentPageSize)} />
+              </SelectTrigger>
+              <SelectContent align="start" className="min-w-18 rounded-xl shadow-lg border border-border bg-popover/95 backdrop-blur-md">
+                {[10, 20, 50, 100].map((size) => (
+                  <SelectItem key={size} value={String(size)} className="text-xs cursor-pointer">
+                    {size}
+                  </SelectItem>
                 ))}
-              </TableRow>
-            ))}
-          </TableHeader>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-          <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <Fragment key={row.id}>
-                  <TableRow>
-                    {expandableRow && (
-                      <TableCell>
-                        <button onClick={() => toggleRow(row.id)}>
-                          {expandedRows[row.id] ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </button>
-                      </TableCell>
-                    )}
-
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-
-                  {expandedRows[row.id] && expandableRow && (
-                    <TableRow className="bg-gray-50">
-                      <TableCell
-                        colSpan={
-                          row.getVisibleCells().length + (expandableRow ? 1 : 0)
-                        }
-                      >
-                        {expandableRow(row.original)}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </Fragment>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length + 1} className="text-center">
-                  No data found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      {/* 🔹 Pagination */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">
-          Total Records:{" "}
-          {isServer
-            ? serverPagination.total
-            : table.getFilteredRowModel().rows.length}
-        </span>
-
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline">
-                {table.getState().pagination.pageSize}
-                <ChevronDown className="ml-1 h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end">
-              {[10, 25, 50, 100].map((size) => (
-                <DropdownMenuCheckboxItem
-                  key={size}
-                  checked={table.getState().pagination.pageSize === size}
-                  onCheckedChange={() => handlePageSizeChange(size)}
-                >
-                  {size} / page
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
+        <div className="flex items-center gap-1">
+          {/* First Page */}
           <Button
-            size="sm"
+            size="icon"
             variant="outline"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            className="h-8 w-8 rounded-lg border-border bg-background"
+            onClick={() => handlePageSelect(0)}
+            disabled={!canPrevious || isFetching}
+            title="First Page"
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </Button>
+
+          {/* Previous Page */}
+          <Button
+            size="icon"
+            variant="outline"
+            className="h-8 w-8 rounded-lg border-border bg-background"
+            onClick={() => handlePageSelect(currentPage - 1)}
+            disabled={!canPrevious || isFetching}
+            title="Previous Page"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
 
-          <span className="text-sm">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
-          </span>
+          {/* Numbered Page Buttons */}
+          <div className="flex items-center gap-1">
+            {paginationItems.map((item, idx) => {
+              if (item === "...") {
+                return (
+                  <span
+                    key={`ellipsis-${idx}`}
+                    className="h-8 w-6 flex items-center justify-center text-muted-foreground font-mono"
+                  >
+                    ...
+                  </span>
+                );
+              }
 
+              const isCurrent = item === currentPage;
+              return (
+                <Button
+                  key={item}
+                  size="icon"
+                  variant={isCurrent ? "default" : "outline"}
+                  className={`h-8 w-8 rounded-lg text-xs font-semibold transition-all ${
+                    isCurrent
+                      ? "bg-primary text-primary-foreground shadow-xs pointer-events-none"
+                      : "border-border bg-background hover:bg-accent hover:text-accent-foreground text-foreground"
+                  }`}
+                  onClick={() => handlePageSelect(item)}
+                  disabled={isFetching}
+                >
+                  {item + 1}
+                </Button>
+              );
+            })}
+          </div>
+
+          {/* Next Page */}
           <Button
-            size="sm"
+            size="icon"
             variant="outline"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            className="h-8 w-8 rounded-lg border-border bg-background"
+            onClick={() => handlePageSelect(currentPage + 1)}
+            disabled={!canNext || isFetching}
+            title="Next Page"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
+
+          {/* Last Page */}
+          <Button
+            size="icon"
+            variant="outline"
+            className="h-8 w-8 rounded-lg border-border bg-background"
+            onClick={() => handlePageSelect(totalPages - 1)}
+            disabled={!canNext || isFetching}
+            title="Last Page"
+          >
+            <ChevronsRight className="h-4 w-4" />
+          </Button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

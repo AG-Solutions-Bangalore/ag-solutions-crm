@@ -1,12 +1,16 @@
-import React, { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { useGetApiMutation } from "@/hooks/useGetApiMutation";
+import DataTable from "@/components/common/data-table";
+import ToggleStatus from "@/components/toogle/status-toogle";
 import BASE_URL from "@/config/base-url";
 import { FAQ_API } from "@/constants/apiConstants";
-import { Edit, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import { useApiMutation } from "@/hooks/useApiMutation";
+import { useGetApiMutation } from "@/hooks/useGetApiMutation";
+import { useQueryClient } from "@tanstack/react-query";
+import { Edit, Trash2 } from "lucide-react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,156 +21,193 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-import DataTable from "@/components/common/data-table";
-import ToggleStatus from "@/components/toogle/status-toogle";
 import Loader from "@/components/loader/loader";
 
 const FaqList = () => {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [pageIndex, setPageIndex] = useState(0);
   const [deleteId, setDeleteId] = useState(null);
-  const { trigger } = useApiMutation();
+  const [openDelete, setOpenDelete] = useState(false);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, isFetching, error } = useGetApiMutation({
+    url: `${BASE_URL}/faq`,
+    queryKey: ["faq", pageIndex, pageSize],
+    params: {
+      page: pageIndex + 1,
+      per_page: pageSize,
+    },
+  });
+
+  const { trigger: deleteTrigger } = useApiMutation();
 
   const handleDelete = async (id) => {
     try {
-      await trigger({
-        url: FAQ_API.deleteFaq(id),
-        method: "DELETE",
+      const res = await deleteTrigger({
+        url: FAQ_API.deleteById(id),
+        method: "delete",
       });
-      toast.success("FAQ group deleted successfully");
-      queryClient.invalidateQueries(["faq"]);
-    } catch (err) {
-      toast.error("Failed to delete FAQ group");
+      if (res?.code === 200 || res?.code === 201) {
+        queryClient.invalidateQueries({ queryKey: ["faq"] });
+        toast.success(res?.message || "FAQ deleted successfully");
+      } else {
+        toast.error(res?.message || "Failed to delete FAQ");
+      }
+    } catch (error) {
+      toast.error("Something went wrong while deleting");
     }
   };
 
-  // Fetch FAQs
-  const { data, isLoading, error } = useGetApiMutation({
-    url: `${BASE_URL}/faq`,
-    queryKey: ["faq", pageIndex],
-    params: {
-      page: pageIndex + 1,
-    },
-  });
+  const faqList = data?.data?.data || data?.data || [];
+  const totalRecords = data?.data?.total || faqList.length || 0;
+  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / pageSize) || 1;
 
   const columns = [
     {
       header: "SL No",
       accessorKey: "slno",
-      cell: ({ row }) => <span>{row.index + 1}</span>,
+      cell: ({ row }) => (
+        <span className="text-xs font-semibold text-muted-foreground">
+          {pageIndex * pageSize + row.index + 1}
+        </span>
+      ),
     },
     {
-      header: "FAQ For (Page)",
-      accessorKey: "faq_for",
+      header: "Question",
+      accessorKey: "faq_question",
       cell: ({ row }) => (
-        <span className="font-medium">{row.original.faq_for}</span>
+        <span className="font-semibold text-foreground text-xs line-clamp-2 max-w-sm">
+          {row.original.faq_question}
+        </span>
+      ),
+    },
+    {
+      header: "Answer",
+      accessorKey: "faq_answer",
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground line-clamp-2 max-w-md">
+          {row.original.faq_answer}
+        </span>
       ),
     },
     {
       header: "Status",
       accessorKey: "faq_status",
       cell: ({ row }) => (
-        <span
-          className={`w-fit px-3 rounded-full text-xs font-medium flex items-center justify-center ${
-            row.original.faq_status === "Active"
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
-          }`}
-        >
-          <ToggleStatus
-            initialStatus={row.original.faq_status}
-            apiUrl={FAQ_API.updateStatus(row.original.id)}
-            payloadKey="faq_status"
-            method="patch"
-            onSuccess={() => {
-              queryClient.setQueryData(
-                ["faq", pageIndex, { page: pageIndex + 1 }],
-                (old) => {
-                  if (!old?.data?.data) return old;
-                  const newStatus =
-                    row.original.faq_status === "Active"
-                      ? "Inactive"
-                      : "Active";
-                  return {
-                    ...old,
-                    data: {
-                      ...old.data,
-                      data: old.data.data.map((item) =>
-                        item.id === row.original.id
-                          ? { ...item, faq_status: newStatus }
-                          : item,
-                      ),
-                    },
-                  };
-                },
-              );
-            }}
-          />
-        </span>
+        <ToggleStatus
+          initialStatus={row.original.faq_status}
+          apiUrl={FAQ_API.updateStatus(row.original.id)}
+          payloadKey="faq_status"
+          method="patch"
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["faq"] });
+          }}
+        />
       ),
     },
     {
       header: "Actions",
       accessorKey: "actions",
       cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <Edit
-            className="h-4 w-4 cursor-pointer hover:text-blue-600"
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+            title="Edit FAQ"
             onClick={() => navigate(`/faq-edit/${row.original.id}`)}
-          />
-          <Trash2
-            className="h-4 w-4 cursor-pointer text-red-500 hover:text-red-700"
-            onClick={() => setDeleteId(row.original.id)}
-          />
+          >
+            <Edit className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            title="Delete FAQ"
+            onClick={() => {
+              setDeleteId(row.original.id);
+              setOpenDelete(true);
+            }}
+          >
+            <Trash2 className="size-3.5" />
+          </button>
         </div>
       ),
     },
   ];
 
   if (isLoading) {
-    return <Loader />;
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader />
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="p-6">Error loading FAQs</div>;
+    return (
+      <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center text-destructive">
+        <p className="font-semibold">Error loading FAQs</p>
+      </div>
+    );
   }
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, filter: "blur(8px)", y: 10 }}
+      animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-4"
+    >
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
+          Frequently Asked Questions
+        </h1>
+        <p className="text-xs text-muted-foreground">
+          Create, organize, and publish FAQs for client guidance.
+        </p>
+      </div>
+
       <DataTable
         columns={columns}
-        data={data?.data?.data || []}
-        pageSize={10}
+        data={faqList}
+        pageSize={pageSize}
+        isLoading={isLoading}
+        isFetching={isFetching}
         serverPagination={{
           pageIndex: pageIndex,
-          pageCount: data?.data?.last_page || 1,
-          total: data?.data?.total || 0,
-          onPageChange: (newPageIndex) => setPageIndex(newPageIndex),
+          pageCount: totalPages,
+          total: totalRecords,
+          onPageChange: (newPage) => setPageIndex(newPage),
+          onPageSizeChange: (newSize) => {
+            setPageSize(newSize);
+            setPageIndex(0);
+          },
         }}
-        createButton={<></>}
         addButton={{
-          onClick: () => navigate("/create-faq"),
-          label: "Create FAQ",
+          to: "/faq/create",
+          label: "Add FAQ",
         }}
         searchPlaceholder="Search FAQs..."
       />
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
+
+      <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
+        <AlertDialogContent className="rounded-xl border border-border bg-card/95 backdrop-blur-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the FAQ
-              group.
+            <AlertDialogTitle className="text-foreground">Delete FAQ</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to delete this FAQ? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-lg" onClick={() => setDeleteId(null)}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg"
               onClick={() => {
                 handleDelete(deleteId);
+                setOpenDelete(false);
                 setDeleteId(null);
               }}
             >
@@ -175,7 +216,7 @@ const FaqList = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </motion.div>
   );
 };
 
