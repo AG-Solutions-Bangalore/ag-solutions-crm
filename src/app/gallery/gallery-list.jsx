@@ -26,7 +26,6 @@ import {
 import Loader from "@/components/loader/loader";
 
 const GalleryList = () => {
-  const [pageIndex, setPageIndex] = useState(0);
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -35,10 +34,7 @@ const GalleryList = () => {
 
   const { data, isLoading, isFetching, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/gallery`,
-    queryKey: ["gallery", pageIndex],
-    params: {
-      page: pageIndex + 1,
-    },
+    queryKey: ["gallery"],
   });
 
   const { trigger: deleteTrigger } = useApiMutation();
@@ -69,16 +65,13 @@ const GalleryList = () => {
     ? data.data
     : [];
 
-  const totalRecords = data?.data?.total || galleryList.length || 0;
-  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
-
   const columns = [
     {
       header: "SL No",
       accessorKey: "slno",
-      cell: ({ row }) => (
+      cell: ({ row, table }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {pageIndex * 10 + row.index + 1}
+          {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + row.index + 1}
         </span>
       ),
     },
@@ -185,14 +178,6 @@ const GalleryList = () => {
     },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center text-destructive">
@@ -223,12 +208,6 @@ const GalleryList = () => {
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
-        serverPagination={{
-          pageIndex: pageIndex,
-          pageCount: totalPages,
-          total: totalRecords,
-          onPageChange: (newPage) => setPageIndex(newPage),
-        }}
         addButton={{
           onClick: () => {
             setSelectedGallery(null);
@@ -236,7 +215,7 @@ const GalleryList = () => {
           },
           label: "Add Image",
         }}
-        searchPlaceholder="Search gallery..."
+        searchPlaceholder="Search gallery by any field..."
       />
 
       {openModal && (

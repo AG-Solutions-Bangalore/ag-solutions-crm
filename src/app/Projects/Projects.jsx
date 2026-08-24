@@ -35,7 +35,6 @@ import Loader from "@/components/loader/loader";
 import ToggleStatus from "@/components/toogle/status-toogle";
 
 const Projects = () => {
-  const [pageIndex, setPageIndex] = useState(0);
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
@@ -47,11 +46,7 @@ const Projects = () => {
 
   const { data, isLoading, isFetching, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/project`,
-    queryKey: ["project", pageIndex, selectedPage],
-    params: {
-      page: pageIndex + 1,
-      page_name: selectedPage !== "all" ? selectedPage : undefined,
-    },
+    queryKey: ["project"],
   });
 
 
@@ -121,25 +116,35 @@ const Projects = () => {
     ? data.data
     : [];
 
-  const totalRecords = data?.data?.total || allProjects.length || 0;
-  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
-
-  const uniquePages = [
-    ...new Set(allProjects.map((item) => item.page).filter(Boolean)),
+  const PROJECT_PAGE_OPTIONS = [
+    "home",
+    "grow-together",
+    "ease-marketing",
+    "digital-marketing",
+    "desktop-applications",
+    "mobile-app-development",
+    "web-development",
   ];
+
+  const uniquePages = Array.from(
+    new Set([...PROJECT_PAGE_OPTIONS, ...allProjects.map((item) => item.page).filter(Boolean)])
+  );
 
   const filteredData =
     selectedPage === "all"
       ? allProjects
       : allProjects.filter((item) => item.page === selectedPage);
 
+  const totalRecords = filteredData.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / 10));
+
   const columns = [
     {
       header: "SL No",
       accessorKey: "slno",
-      cell: ({ row }) => (
+      cell: ({ row, table }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {pageIndex * 10 + row.index + 1}
+          {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + row.index + 1}
         </span>
       ),
     },
@@ -167,7 +172,8 @@ const Projects = () => {
     },
     {
       header: "Project Title",
-      accessorKey: "project_title",
+      id: "project_title",
+      accessorFn: (row) => row.project_title || row.project_name || "",
       cell: ({ row }) => (
         <span className="font-semibold text-foreground text-xs line-clamp-2 max-w-xs">
           {row.original.project_title || row.original.project_name || "-"}
@@ -262,14 +268,6 @@ const Projects = () => {
     },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center text-destructive">
@@ -300,16 +298,14 @@ const Projects = () => {
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
-        serverPagination={{
-          pageIndex: pageIndex,
-          pageCount: totalPages,
-          total: totalRecords,
-          onPageChange: (newPage) => setPageIndex(newPage),
-        }}
-
         filterProjects={
           <div className="flex items-center gap-2">
-            <Select value={selectedPage} onValueChange={setSelectedPage}>
+            <Select
+              value={selectedPage}
+              onValueChange={(newPage) => {
+                setSelectedPage(newPage);
+              }}
+            >
               <SelectTrigger className="h-9 w-44 text-xs rounded-lg border-border bg-background shadow-2xs">
                 <SelectValue placeholder="Filter by page" />
               </SelectTrigger>

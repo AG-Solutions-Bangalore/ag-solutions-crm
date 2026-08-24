@@ -238,25 +238,29 @@ const GalleryModal = ({ setOpenModal, galleryItem, galleryBaseUrl, refetch }) =>
           />
         </div>
 
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Status</Label>
-          <select
-            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            value={formData.gallery_status}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                gallery_status: e.target.value,
-              })
-            }
-          >
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-        </div>
+        {isEditMode && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Status</Label>
+            <select
+              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={formData.gallery_status}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  gallery_status: e.target.value,
+                })
+              }
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+        )}
       </div>
     </Modal>
   );
 };
 
 export default GalleryModal;
+
+

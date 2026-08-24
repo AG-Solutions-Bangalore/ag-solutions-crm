@@ -23,14 +23,16 @@ import {
 
 const Campaign = () => {
   const [pageIndex, setPageIndex] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
   const [deleteId, setDeleteId] = useState(null);
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/campaign-visit`,
-    queryKey: ["campaign-visit", pageIndex],
+    queryKey: ["campaign-visit", pageIndex, searchTerm],
     params: {
-      page: pageIndex + 1,
+      page: searchTerm ? undefined : pageIndex + 1,
+      search: searchTerm || undefined,
     },
   });
 
@@ -40,8 +42,12 @@ const Campaign = () => {
     ? data.data
     : [];
 
-  const totalRecords = data?.data?.total || campaigns.length || 0;
-  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
+  const totalRecords = searchTerm
+    ? campaigns.length
+    : (data?.data?.total || campaigns.length || 0);
+  const totalPages = searchTerm
+    ? (Math.ceil(totalRecords / 10) || 1)
+    : (data?.data?.last_page || Math.ceil(totalRecords / 10) || 1);
 
   const { trigger: deleteCampaign } = useApiMutation();
 
@@ -120,14 +126,6 @@ const Campaign = () => {
     },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center text-destructive">
@@ -162,7 +160,12 @@ const Campaign = () => {
           pageIndex: pageIndex,
           pageCount: totalPages,
           total: totalRecords,
+          searchValue: searchTerm,
           onPageChange: (newPage) => setPageIndex(newPage),
+          onSearch: (newSearch) => {
+            setSearchTerm(newSearch);
+            setPageIndex(0);
+          },
         }}
         searchPlaceholder="Search by campaign or source..."
       />

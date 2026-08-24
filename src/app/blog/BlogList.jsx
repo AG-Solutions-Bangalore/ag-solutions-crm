@@ -35,13 +35,17 @@ const BlogList = () => {
   const [openDelete, setOpenDelete] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [selectedBlogId, setSelectedBlogId] = useState(null);
+  const [selectedBlog, setSelectedBlog] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
+
 
   const { data, isLoading, isFetching, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/blog`,
-    queryKey: ["blog", pageIndex],
+    queryKey: ["blog", pageIndex, searchTerm],
     params: {
-      page: pageIndex + 1,
+      page: searchTerm ? undefined : pageIndex + 1,
+      search: searchTerm || undefined,
     },
   });
 
@@ -74,8 +78,12 @@ const BlogList = () => {
     ? data.data
     : [];
 
-  const totalRecords = data?.data?.total || blogList.length || 0;
-  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
+  const totalRecords = searchTerm
+    ? blogList.length
+    : (data?.data?.total || blogList.length || 0);
+  const totalPages = searchTerm
+    ? (Math.ceil(totalRecords / 10) || 1)
+    : (data?.data?.last_page || Math.ceil(totalRecords / 10) || 1);
 
   const columns = [
     {
@@ -170,6 +178,7 @@ const BlogList = () => {
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
             title="Edit Blog"
             onClick={() => {
+              setSelectedBlog(row.original);
               setSelectedBlogId(row.original.id);
               setOpenModal(true);
             }}
@@ -192,14 +201,6 @@ const BlogList = () => {
       enableSorting: false,
     },
   ];
-
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -235,10 +236,16 @@ const BlogList = () => {
           pageIndex: pageIndex,
           pageCount: totalPages,
           total: totalRecords,
+          searchValue: searchTerm,
           onPageChange: (newPage) => setPageIndex(newPage),
+          onSearch: (newSearch) => {
+            setSearchTerm(newSearch);
+            setPageIndex(0);
+          },
         }}
         addButton={{
           onClick: () => {
+            setSelectedBlog(null);
             setSelectedBlogId(null);
             setOpenModal(true);
           },
@@ -251,9 +258,11 @@ const BlogList = () => {
         <BlogModal
           setOpenModal={setOpenModal}
           blogId={selectedBlogId}
+          blogItem={selectedBlog}
           refetch={refetch}
         />
       )}
+
 
 
 

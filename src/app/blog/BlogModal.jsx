@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,9 +20,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Loader from "@/components/loader/loader";
+import { CKEditor } from "ckeditor4-react";
+import ImageCell from "@/components/common/ImageCell";
+import { getImageBaseUrl, getNoImageUrl } from "@/utils/imageUtils";
 
-const BlogModal = ({ setOpenModal, blogId, refetch }) => {
-  const isEditMode = Boolean(blogId);
+const BlogModal = ({ setOpenModal, blogId, blogItem, refetch }) => {
+  const editorInstanceRef = useRef(null);
+  const effectiveBlogId = blogId || blogItem?.id;
+  const isEditMode = Boolean(effectiveBlogId);
   const queryClient = useQueryClient();
   const { trigger: saveBlog, loading: isSubmitting } = useApiMutation();
 
@@ -31,9 +36,9 @@ const BlogModal = ({ setOpenModal, blogId, refetch }) => {
     data: blogData,
     isLoading: blogLoading,
   } = useGetApiMutation({
-    url: blogId ? `${BASE_URL}/blog/${blogId}` : null,
-    queryKey: ["blog-detail", blogId],
-    enabled: Boolean(blogId),
+    url: effectiveBlogId ? `${BASE_URL}/blog/${effectiveBlogId}` : null,
+    queryKey: ["blog-detail", effectiveBlogId],
+    enabled: Boolean(effectiveBlogId),
   });
 
   // Fetch Categories Dropdown
@@ -49,50 +54,93 @@ const BlogModal = ({ setOpenModal, blogId, refetch }) => {
     : [];
 
   const [formData, setFormData] = useState({
-    blog_title: "",
-    blog_slug: "",
-    blog_categories_ids: "",
-    blog_short_description: "",
-    blog_description: "",
+    blog_title: blogItem?.blog_title || "",
+    blog_slug: blogItem?.blog_slug || "",
+    blog_categories_ids: String(
+      blogItem?.blog_categories_ids ||
+      blogItem?.blog_category_id ||
+      (Array.isArray(blogItem?.categories) ? blogItem.categories.map((c) => c.id || c).join(",") : "") ||
+      ""
+    ),
+    blog_short_description: blogItem?.blog_short_description || "",
+    blog_description: blogItem?.blog_description || "",
     blog_banner_image: null,
-    blog_banner_image_alt: "",
-    blog_status: "Active",
-    blog_featured: "No",
-    blog_index: "Yes",
-    blog_meta_keywords: "",
-    blog_created_date: new Date().toISOString().split("T")[0],
+    blog_banner_image_alt: blogItem?.blog_banner_image_alt || blogItem?.blog_title || "",
+    blog_status: blogItem?.blog_status || "Active",
+    blog_featured: blogItem?.blog_featured || "No",
+    blog_index: blogItem?.blog_index || "Yes",
+    blog_meta_keywords: blogItem?.blog_meta_keywords || "",
+    blog_front: blogItem?.blog_front || "",
+    blog_created_date: blogItem?.blog_created_date || new Date().toISOString().split("T")[0],
     blog_updated_date: new Date().toISOString().split("T")[0],
   });
 
-  const [existingImage, setExistingImage] = useState("");
+  const [existingImage, setExistingImage] = useState(blogItem?.blog_banner_image || "");
   const [errors, setErrors] = useState({});
 
-  useEffect(() => {
-    if (!isEditMode || !blogData) return;
-
-    const blog = blogData?.data?.data || blogData?.data;
+  const populateFromBlog = (blog) => {
     if (!blog) return;
+    const catIds =
+      blog.blog_categories_ids ||
+      blog.blog_category_id ||
+      (Array.isArray(blog.categories) ? blog.categories.map((c) => c.id || c).join(",") : "") ||
+      "";
 
-    setFormData({
-      blog_title: blog.blog_title || "",
-      blog_slug: blog.blog_slug || "",
-      blog_categories_ids: String(blog.blog_categories_ids || blog.category_id || ""),
-      blog_short_description: blog.blog_short_description || "",
-      blog_description: blog.blog_description || "",
-      blog_banner_image: null,
-      blog_banner_image_alt: blog.blog_banner_image_alt || blog.blog_title || "",
-      blog_status: blog.blog_status || "Active",
-      blog_featured: blog.blog_featured || "No",
-      blog_index: blog.blog_index || "Yes",
-      blog_meta_keywords: blog.blog_meta_keywords || "",
-      blog_created_date: blog.blog_created_date || new Date().toISOString().split("T")[0],
+    setFormData((prev) => ({
+      ...prev,
+      blog_title: blog.blog_title || prev.blog_title || "",
+      blog_slug: blog.blog_slug || prev.blog_slug || "",
+      blog_categories_ids: String(catIds || prev.blog_categories_ids || ""),
+      blog_short_description: blog.blog_short_description || prev.blog_short_description || "",
+      blog_description: blog.blog_description || prev.blog_description || "",
+      blog_banner_image_alt: blog.blog_banner_image_alt || prev.blog_banner_image_alt || "",
+      blog_status: blog.blog_status || prev.blog_status || "Active",
+      blog_featured: blog.blog_featured || prev.blog_featured || "No",
+      blog_index: blog.blog_index || prev.blog_index || "Yes",
+      blog_meta_keywords: blog.blog_meta_keywords || prev.blog_meta_keywords || "",
+      blog_front: blog.blog_front || prev.blog_front || "",
+      blog_created_date: blog.blog_created_date || prev.blog_created_date || new Date().toISOString().split("T")[0],
       blog_updated_date: new Date().toISOString().split("T")[0],
-    });
+    }));
 
     if (blog.blog_banner_image) {
       setExistingImage(blog.blog_banner_image);
     }
-  }, [blogData, isEditMode]);
+
+    if (blog.blog_description && editorInstanceRef.current) {
+      editorInstanceRef.current.setData(blog.blog_description);
+    }
+  };
+
+  useEffect(() => {
+    if (blogItem) {
+      populateFromBlog(blogItem);
+    }
+  }, [blogItem]);
+
+  useEffect(() => {
+    if (blogData) {
+      const blog = blogData?.data?.data || blogData?.data || blogData?.blog;
+      if (blog) {
+        populateFromBlog(blog);
+      }
+    }
+  }, [blogData]);
+
+  useEffect(() => {
+    if (editorInstanceRef.current && formData.blog_description) {
+      try {
+        if (editorInstanceRef.current.getData() !== formData.blog_description) {
+          editorInstanceRef.current.setData(formData.blog_description);
+        }
+      } catch (err) {
+        console.error("Failed to sync editor data", err);
+      }
+    }
+  }, [formData.blog_description]);
+
+
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -133,10 +181,15 @@ const BlogModal = ({ setOpenModal, blogId, refetch }) => {
       newErrors.blog_description = "Description content is required";
       isValid = false;
     }
+    if (!formData.blog_banner_image_alt?.trim()) {
+      newErrors.blog_banner_image_alt = "Image alt text is required";
+      isValid = false;
+    }
     if (!isEditMode && !formData.blog_banner_image) {
       newErrors.blog_banner_image = "Banner image is required";
       isValid = false;
     }
+
 
     setErrors(newErrors);
     return isValid;
@@ -291,31 +344,99 @@ const BlogModal = ({ setOpenModal, blogId, refetch }) => {
               <Label className="text-sm font-medium">
                 Full Article Content <Redstar />
               </Label>
-              <Textarea
-                rows={6}
-                name="blog_description"
-                value={formData.blog_description}
-                onChange={handleInputChange}
-                placeholder="Write full article content (supports HTML / markdown)..."
-                className={errors.blog_description ? "border-red-500" : ""}
-              />
+              <div className="rounded-lg overflow-hidden border border-input focus-within:ring-2 focus-within:ring-ring text-black">
+                <CKEditor
+                  key={`blog-content-editor-${effectiveBlogId || "new"}`}
+                  initData={formData.blog_description}
+                  data={formData.blog_description}
+                  onInstanceReady={(evt) => {
+                    editorInstanceRef.current = evt.editor;
+                    const desc =
+                      formData.blog_description ||
+                      blogData?.data?.data?.blog_description ||
+                      blogData?.data?.blog_description ||
+                      blogItem?.blog_description ||
+                      "";
+                    if (desc) {
+                      evt.editor.setData(desc);
+                    }
+                  }}
+
+                  onChange={(e) => {
+
+                    const editorData = e.editor.getData();
+                    setFormData((prev) => ({
+                      ...prev,
+                      blog_description: editorData,
+                    }));
+                    if (errors.blog_description) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        blog_description: "",
+                      }));
+                    }
+                  }}
+                  config={{
+                    versionCheck: false,
+                    toolbar: [
+                      {
+                        name: "basicstyles",
+                        items: ["Bold", "Italic", "Strike"],
+                      },
+                      {
+                        name: "paragraph",
+                        items: [
+                          "NumberedList",
+                          "BulletedList",
+                          "-",
+                          "Outdent",
+                          "Indent",
+                        ],
+                      },
+                      { name: "links", items: ["Link", "Unlink"] },
+                      { name: "insert", items: ["Image", "Table"] },
+                      { name: "styles", items: ["Styles", "Format"] },
+                      { name: "tools", items: ["Maximize"] },
+                    ],
+                    height: 220,
+                  }}
+                />
+              </div>
+
               {errors.blog_description && (
                 <p className="text-xs text-red-500">{errors.blog_description}</p>
               )}
             </div>
 
+
+            {isEditMode && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Status</Label>
+                <select
+                  name="blog_status"
+                  value={formData.blog_status}
+                  onChange={handleInputChange}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Status</Label>
+              <Label className="text-sm font-medium">Blog Index</Label>
               <select
-                name="blog_status"
-                value={formData.blog_status}
+                name="blog_index"
+                value={formData.blog_index}
                 onChange={handleInputChange}
                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
               </select>
             </div>
+
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">Featured Article?</Label>
@@ -331,14 +452,32 @@ const BlogModal = ({ setOpenModal, blogId, refetch }) => {
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label className="text-sm font-medium">Image Alt Text</Label>
+              <Label className="text-sm font-medium">Meta Keywords</Label>
+              <Input
+                name="blog_meta_keywords"
+                value={formData.blog_meta_keywords}
+                onChange={handleInputChange}
+                placeholder="e.g. react, web development, mobile apps"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label className="text-sm font-medium">
+                Image Alt Text <Redstar />
+              </Label>
               <Input
                 name="blog_banner_image_alt"
                 value={formData.blog_banner_image_alt}
                 onChange={handleInputChange}
                 placeholder="SEO alt text for banner image"
+                className={errors.blog_banner_image_alt ? "border-red-500" : ""}
               />
+              {errors.blog_banner_image_alt && (
+                <p className="text-xs text-red-500">{errors.blog_banner_image_alt}</p>
+              )}
             </div>
+
+
 
             <div className="space-y-2 md:col-span-2 border border-border p-4 rounded-lg bg-muted/20">
               <Label className="text-sm font-medium block mb-2">
@@ -346,10 +485,17 @@ const BlogModal = ({ setOpenModal, blogId, refetch }) => {
               </Label>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 {existingImage && (
-                  <img
-                    src={`https://ag-solutions.in/webapi/public/assets/images/blog_banner_images/${existingImage}`}
+                  <ImageCell
+                    src={
+                      existingImage.startsWith("http")
+                        ? existingImage
+                        : `${getImageBaseUrl(blogData?.image_url, "Blog")}${existingImage}`
+                    }
+                    fallback={getNoImageUrl(blogData?.image_url)}
                     alt="Current Banner"
-                    className="w-24 h-14 object-cover rounded-md border border-border shadow-2xs"
+                    width={96}
+                    height={56}
+                    className="w-24 h-14 object-cover rounded-md border border-border shadow-2xs shrink-0"
                   />
                 )}
                 <Input
@@ -363,6 +509,7 @@ const BlogModal = ({ setOpenModal, blogId, refetch }) => {
                   }
                 />
               </div>
+
               {errors.blog_banner_image && (
                 <p className="text-xs text-red-500 mt-1">{errors.blog_banner_image}</p>
               )}

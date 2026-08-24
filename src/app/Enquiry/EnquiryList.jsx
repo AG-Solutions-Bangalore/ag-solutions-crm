@@ -34,14 +34,16 @@ const EnquiryList = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const queryClient = useQueryClient();
 
   const { data, isLoading, isFetching } = useGetApiMutation({
     url: `${BASE_URL}/enquiry`,
-    queryKey: ["enquiry", pageIndex],
+    queryKey: ["enquiry", pageIndex, searchTerm],
     params: {
-      page: pageIndex + 1,
+      page: searchTerm ? undefined : pageIndex + 1,
+      search: searchTerm || undefined,
     },
   });
 
@@ -72,8 +74,12 @@ const EnquiryList = () => {
     ? data.data
     : [];
 
-  const totalRecords = data?.data?.total || enquiriesList.length || 0;
-  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
+  const totalRecords = searchTerm
+    ? enquiriesList.length
+    : (data?.data?.total || enquiriesList.length || 0);
+  const totalPages = searchTerm
+    ? (Math.ceil(totalRecords / 10) || 1)
+    : (data?.data?.last_page || Math.ceil(totalRecords / 10) || 1);
 
   console.log("[EnquiryList] Render -> pageIndex:", pageIndex, "totalRecords:", totalRecords, "totalPages:", totalPages, "received items:", enquiriesList.length, "isLoading:", isLoading, "isFetching:", isFetching);
 
@@ -256,7 +262,12 @@ const EnquiryList = () => {
           pageIndex: pageIndex,
           pageCount: totalPages,
           total: totalRecords,
+          searchValue: searchTerm,
           onPageChange: (newPage) => setPageIndex(newPage),
+          onSearch: (newSearch) => {
+            setSearchTerm(newSearch);
+            setPageIndex(0);
+          },
         }}
         searchPlaceholder="Search enquiries by name, email, mobile..."
       />

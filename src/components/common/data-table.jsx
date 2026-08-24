@@ -46,9 +46,10 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import useDebounce from "@/hooks/useDebounce";
 
 const DataTable = ({
   data = [],
@@ -68,14 +69,39 @@ const DataTable = ({
 }) => {
 
   const isServer = !!serverPagination;
+  const initialSearch = serverPagination?.searchValue ?? "";
   const [sorting, setSorting] = useState([]);
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(initialSearch);
   const [expandedRows, setExpandedRows] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize,
   });
+
+  const debouncedSearch = useDebounce(searchValue, 400);
+  const lastEmittedSearch = useRef(initialSearch);
+
+  // Notify parent on debounced search when server pagination is enabled
+  useEffect(() => {
+    if (!isServer) return;
+    if (debouncedSearch !== lastEmittedSearch.current) {
+      lastEmittedSearch.current = debouncedSearch;
+      serverPagination?.onSearch?.(debouncedSearch);
+    }
+  }, [debouncedSearch, isServer]);
+
+  // Sync external searchValue if controlled from parent
+  useEffect(() => {
+    if (
+      serverPagination?.searchValue !== undefined &&
+      serverPagination.searchValue !== searchValue &&
+      serverPagination.searchValue !== lastEmittedSearch.current
+    ) {
+      setSearchValue(serverPagination.searchValue);
+      lastEmittedSearch.current = serverPagination.searchValue;
+    }
+  }, [serverPagination?.searchValue]);
 
   // Sync pageSize prop when changed
   useEffect(() => {
@@ -85,12 +111,107 @@ const DataTable = ({
     }));
   }, [pageSize]);
 
+  // Universal client search filtering across all fields with similarity and fuzzy regex
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(data)) return [];
+    if (isServer) return data;
+    if (!searchValue.trim()) return data;
+
+    const rawQuery = searchValue.trim().toLowerCase();
+    const tokens = rawQuery.split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return data;
+
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // 1. Direct query regex
+    let directRegex = null;
+    try {
+      directRegex = new RegExp(escapeRegex(rawQuery), "i");
+    } catch {
+      directRegex = null;
+    }
+
+    // 2. Token regexes (all words in search query must appear)
+    const tokenRegexes = tokens
+      .map((token) => {
+        try {
+          return new RegExp(escapeRegex(token), "i");
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+    // 3. Fuzzy similarity regex: loose character sequence (e.g. "naturl" -> "n.*?a.*?t.*?u.*?r.*?l")
+    const fuzzyRegexes = tokens
+      .map((token) => {
+        const pattern = token
+          .split("")
+          .map((ch) => escapeRegex(ch))
+          .join(".*?");
+        try {
+          return new RegExp(pattern, "i");
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+    // Helper to extract all text fields from a record
+    const extractAllText = (obj) => {
+      const texts = [];
+      const traverse = (val) => {
+        if (val === null || val === undefined) return;
+        if (typeof val === "string" || typeof val === "number" || typeof val === "boolean") {
+          texts.push(String(val));
+        } else if (Array.isArray(val)) {
+          val.forEach(traverse);
+        } else if (typeof val === "object") {
+          Object.values(val).forEach(traverse);
+        }
+      };
+      traverse(obj);
+      return texts.join(" ");
+    };
+
+    return data.filter((item) => {
+      if (!item || typeof item !== "object") return false;
+
+      const itemText = extractAllText(item);
+
+      // Check 1: Direct match
+      if (directRegex && directRegex.test(itemText)) return true;
+
+      // Check 2: Multi-token match (all words match across fields)
+      if (tokenRegexes.length > 0 && tokenRegexes.every((rgx) => rgx.test(itemText))) {
+        return true;
+      }
+
+      // Check 3: Fuzzy character-sequence similarity match
+      if (fuzzyRegexes.length > 0 && fuzzyRegexes.every((rgx) => rgx.test(itemText))) {
+        return true;
+      }
+
+      return false;
+    });
+  }, [data, searchValue, isServer]);
+
+  const displayData = useMemo(() => {
+    if (!Array.isArray(filteredData)) return [];
+    if (isServer && filteredData.length > pageSize) {
+      const activePageIndex = serverPagination?.pageIndex ?? 0;
+      const start = activePageIndex * pageSize;
+      return filteredData.slice(start, start + pageSize);
+    }
+    return filteredData;
+  }, [filteredData, isServer, pageSize, serverPagination?.pageIndex]);
+
   const table = useReactTable({
-    data: data || [],
+    data: displayData,
     columns: columns || [],
+
     state: {
       sorting,
-      globalFilter,
       pagination: isServer
         ? {
             pageIndex: serverPagination?.pageIndex ?? 0,
@@ -117,10 +238,8 @@ const DataTable = ({
       : setPagination,
 
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: isServer ? undefined : getFilteredRowModel(),
     getPaginationRowModel: isServer ? undefined : getPaginationRowModel(),
   });
 
@@ -141,27 +260,30 @@ const DataTable = ({
 
   const handleSearchChange = (value) => {
     setSearchValue(value);
-    if (isServer) {
-      serverPagination.onSearch?.(value);
-      serverPagination.onPageChange?.(0);
-    } else {
-      setGlobalFilter(value);
+    if (!isServer) {
       table.setPageIndex(0);
     }
   };
 
   const handleClearSearch = () => {
-    handleSearchChange("");
+    setSearchValue("");
+    lastEmittedSearch.current = "";
+    if (isServer) {
+      serverPagination?.onSearch?.("");
+      serverPagination?.onPageChange?.(0);
+    } else {
+      table.setPageIndex(0);
+    }
   };
 
   // Pagination calculation
   const totalItems = isServer
     ? (serverPagination?.total ?? (data?.length || 0))
-    : table.getFilteredRowModel().rows.length;
+    : (filteredData?.length || 0);
 
   const totalPages = isServer
     ? Math.max(1, serverPagination?.pageCount ?? Math.ceil(totalItems / (pageSize || 10)) ?? 1)
-    : Math.max(1, table.getPageCount() || 1);
+    : Math.max(1, Math.ceil(totalItems / (pageSize || 10)));
 
   const currentPage = isServer
     ? (serverPagination?.pageIndex ?? 0)
@@ -173,6 +295,7 @@ const DataTable = ({
 
   const startRecord = totalItems === 0 ? 0 : currentPage * currentPageSize + 1;
   const endRecord = Math.min((currentPage + 1) * currentPageSize, totalItems);
+
 
   // Pagination item list generator
   const paginationItems = useMemo(() => {

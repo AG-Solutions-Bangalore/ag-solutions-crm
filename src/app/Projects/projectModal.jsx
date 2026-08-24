@@ -129,11 +129,17 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
       setErrors((prev) => ({ ...prev, project_type: "Project type is required" }));
       return;
     }
+    if (!formData.project_image_alt?.trim()) {
+      toast.error("Please enter image alt text");
+      setErrors((prev) => ({ ...prev, project_image_alt: "Image alt text is required" }));
+      return;
+    }
     if (!isEditMode && !formData.project_image) {
       toast.error("Please select a project image");
       setErrors((prev) => ({ ...prev, project_image: "Project image is required" }));
       return;
     }
+
 
     const payload = new FormData();
     payload.append("page", formData.page);
@@ -274,28 +280,38 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Status</Label>
-            <select
-              name="project_status"
-              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              value={formData.project_status}
-              onChange={handleInputChange}
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </div>
+          {isEditMode && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Status</Label>
+              <select
+                name="project_status"
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={formData.project_status}
+                onChange={handleInputChange}
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          )}
+
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Image Alt Text</Label>
+            <Label className="text-sm font-medium">
+              Image Alt Text <Redstar />
+            </Label>
             <Input
               name="project_image_alt"
               value={formData.project_image_alt}
               onChange={handleInputChange}
               placeholder="Alt text for image"
+              className={errors.project_image_alt ? "border-red-500" : ""}
             />
+            {errors.project_image_alt && (
+              <p className="text-xs text-red-500">{errors.project_image_alt}</p>
+            )}
           </div>
+
 
           <div className="space-y-2 md:col-span-2">
             <Label className="text-sm font-medium">Features</Label>

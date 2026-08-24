@@ -25,15 +25,17 @@ import {
 
 const Newsletter = () => {
   const [pageIndex, setPageIndex] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/newsletter`,
-    queryKey: ["newsletter", pageIndex],
+    queryKey: ["newsletter", pageIndex, searchTerm],
     params: {
-      page: pageIndex + 1,
+      page: searchTerm ? undefined : pageIndex + 1,
+      search: searchTerm || undefined,
     },
   });
 
@@ -62,8 +64,13 @@ const Newsletter = () => {
     ? data.data
     : [];
 
-  const totalRecords = data?.data?.total || subscriberList.length || 0;
-  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
+  const perPage = data?.data?.per_page || 10;
+  const totalRecords = searchTerm
+    ? subscriberList.length
+    : (data?.data?.total || subscriberList.length || 0);
+  const totalPages = searchTerm
+    ? (Math.ceil(totalRecords / perPage) || 1)
+    : (data?.data?.last_page || Math.ceil(totalRecords / perPage) || 1);
 
   const columns = [
     {
@@ -71,7 +78,7 @@ const Newsletter = () => {
       accessorKey: "slno",
       cell: ({ row }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {pageIndex * 10 + row.index + 1}
+          {pageIndex * perPage + row.index + 1}
         </span>
       ),
     },
@@ -92,36 +99,33 @@ const Newsletter = () => {
     },
     {
       header: "Subscription Date",
-      accessorKey: "created_at",
+      accessorKey: "newsletter_created",
       cell: ({ row }) => {
-        const rawDate = row.original.created_at || row.original.newsletter_created_at;
-        if (!rawDate) return <span className="text-xs text-muted-foreground">-</span>;
+        const rawDate =
+          row.original.newsletter_created ||
+          row.original.created_at ||
+          row.original.newsletter_created_at;
+
+        if (!rawDate)
+          return <span className="text-xs text-muted-foreground">-</span>;
+
         const date = new Date(rawDate);
         return (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Calendar className="size-3.5 text-muted-foreground" />
             <span>
-              {`${String(date.getDate()).padStart(2, "0")}-${String(
-                date.getMonth() + 1
-              ).padStart(2, "0")}-${date.getFullYear()}`}
+              {!isNaN(date.getTime())
+                ? `${String(date.getDate()).padStart(2, "0")}-${String(
+                    date.getMonth() + 1
+                  ).padStart(2, "0")}-${date.getFullYear()}`
+                : rawDate}
             </span>
           </div>
         );
       },
     },
     {
-      header: "Status",
-      accessorKey: "status",
-      cell: () => (
-        <Badge variant="success" className="text-xs font-medium">
-          <span className="size-1.5 rounded-full bg-emerald-500" />
-          Subscribed
-        </Badge>
-      ),
-    },
-    {
       header: "Actions",
-
       accessorKey: "actions",
       cell: ({ row }) => (
         <button
@@ -139,13 +143,6 @@ const Newsletter = () => {
     },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -174,17 +171,23 @@ const Newsletter = () => {
       <DataTable
         columns={columns}
         data={subscriberList}
-        pageSize={10}
+        pageSize={perPage}
         isLoading={isLoading}
         isFetching={isFetching}
         serverPagination={{
           pageIndex: pageIndex,
           pageCount: totalPages,
           total: totalRecords,
+          searchValue: searchTerm,
           onPageChange: (newPage) => setPageIndex(newPage),
+          onSearch: (newSearch) => {
+            setSearchTerm(newSearch);
+            setPageIndex(0);
+          },
         }}
         searchPlaceholder="Search subscribers..."
       />
+
 
 
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>

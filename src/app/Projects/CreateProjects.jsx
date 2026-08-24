@@ -140,10 +140,15 @@ const CreateProjects = () => {
       newErrors.project_type = "Project type is required";
       isValid = false;
     }
+    if (!formData.project_image_alt.trim()) {
+      newErrors.project_image_alt = "Image alt text is required";
+      isValid = false;
+    }
     if (!isEditMode && !formData.project_image && !preview.project_image) {
       newErrors.project_image = "Project image is required";
       isValid = false;
     }
+
 
     setErrors(newErrors);
     return isValid;
@@ -470,7 +475,7 @@ const CreateProjects = () => {
                     htmlFor="project_image_alt"
                     className="text-sm font-medium"
                   >
-                    Image Alt Text
+                    Image Alt Text <Redstar />
                   </Label>
                   <Input
                     id="project_image_alt"
@@ -479,8 +484,17 @@ const CreateProjects = () => {
                     placeholder="Enter image alt text"
                     value={formData.project_image_alt}
                     onChange={handleInputChange}
+                    className={
+                      errors.project_image_alt ? "border-red-500" : ""
+                    }
                   />
+                  {errors.project_image_alt && (
+                    <p className="text-sm text-red-500">
+                      {errors.project_image_alt}
+                    </p>
+                  )}
                 </div>
+
               </div>
             </div>
           </form>

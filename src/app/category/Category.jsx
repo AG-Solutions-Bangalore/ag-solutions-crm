@@ -29,14 +29,16 @@ const Category = () => {
   const [openCreate, setOpenCreate] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/category`,
-    queryKey: ["category", pageIndex],
+    queryKey: ["category", pageIndex, searchTerm],
     params: {
-      page: pageIndex + 1,
+      page: searchTerm ? undefined : pageIndex + 1,
+      search: searchTerm || undefined,
     },
   });
 
@@ -65,8 +67,12 @@ const Category = () => {
     ? data.data
     : [];
 
-  const totalRecords = data?.data?.total || categoryList.length || 0;
-  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
+  const totalRecords = searchTerm
+    ? categoryList.length
+    : (data?.data?.total || categoryList.length || 0);
+  const totalPages = searchTerm
+    ? (Math.ceil(totalRecords / 10) || 1)
+    : (data?.data?.last_page || Math.ceil(totalRecords / 10) || 1);
 
   const columns = [
     {
@@ -135,14 +141,6 @@ const Category = () => {
     },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center text-destructive">
@@ -177,7 +175,12 @@ const Category = () => {
           pageIndex: pageIndex,
           pageCount: totalPages,
           total: totalRecords,
+          searchValue: searchTerm,
           onPageChange: (newPage) => setPageIndex(newPage),
+          onSearch: (newSearch) => {
+            setSearchTerm(newSearch);
+            setPageIndex(0);
+          },
         }}
         addButton={{
           onClick: () => setOpenCreate(true),

@@ -229,7 +229,7 @@ const FaqModal = ({ setOpenModal, faqId, refetch }) => {
           </div>
         ) : (
           <div className="space-y-6 py-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={isEditMode ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "grid grid-cols-1 gap-4"}>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
                   FAQ For (Page) <Redstar />
@@ -260,20 +260,23 @@ const FaqModal = ({ setOpenModal, faqId, refetch }) => {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Status</Label>
-                <select
-                  value={formData.faq_status}
-                  onChange={(e) =>
-                    setFormData({ ...formData, faq_status: e.target.value })
-                  }
-                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
+              {isEditMode && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Status</Label>
+                  <select
+                    value={formData.faq_status}
+                    onChange={(e) =>
+                      setFormData({ ...formData, faq_status: e.target.value })
+                    }
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              )}
             </div>
+
 
             {/* Sub Questions & Answers */}
             <div className="space-y-4 pt-2">

@@ -138,3 +138,11 @@ svg:focus {
   z-index: 9999 !important;
   pointer-events: auto !important;
 }
+
+/* Hide CKEditor 4 security / upgrade notification overlay */
+.cke_notifications_area,
+.cke_notification_warning,
+.cke_notification {
+  display: none !important;
+}
+

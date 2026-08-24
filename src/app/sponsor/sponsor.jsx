@@ -28,6 +28,7 @@ import Loader from "@/components/loader/loader";
 const Sponsor = () => {
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
@@ -37,10 +38,11 @@ const Sponsor = () => {
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/sponsor`,
-    queryKey: ["sponsor", pageIndex, pageSize],
+    queryKey: ["sponsor", pageIndex, pageSize, searchTerm],
     params: {
-      page: pageIndex + 1,
+      page: searchTerm ? undefined : pageIndex + 1,
       per_page: pageSize,
+      search: searchTerm || undefined,
     },
   });
 
@@ -67,8 +69,12 @@ const Sponsor = () => {
   const noImageUrl = getNoImageUrl(data?.image_url);
 
   const sponsorList = data?.data?.data || data?.data || [];
-  const totalRecords = data?.data?.total || sponsorList.length || 0;
-  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / pageSize) || 1;
+  const totalRecords = searchTerm
+    ? sponsorList.length
+    : (data?.data?.total || sponsorList.length || 0);
+  const totalPages = searchTerm
+    ? (Math.ceil(totalRecords / pageSize) || 1)
+    : (data?.data?.last_page || Math.ceil(totalRecords / pageSize) || 1);
 
   const columns = [
     {
@@ -171,14 +177,6 @@ const Sponsor = () => {
     },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center text-destructive">
@@ -213,9 +211,14 @@ const Sponsor = () => {
           pageIndex: pageIndex,
           pageCount: totalPages,
           total: totalRecords,
+          searchValue: searchTerm,
           onPageChange: (newPage) => setPageIndex(newPage),
           onPageSizeChange: (newSize) => {
             setPageSize(newSize);
+            setPageIndex(0);
+          },
+          onSearch: (newSearch) => {
+            setSearchTerm(newSearch);
             setPageIndex(0);
           },
         }}
