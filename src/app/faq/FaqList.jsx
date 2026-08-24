@@ -78,7 +78,10 @@ const FaqList = () => {
       accessorKey: "faq_question",
       cell: ({ row }) => (
         <span className="font-semibold text-foreground text-xs line-clamp-2 max-w-sm">
-          {row.original.faq_question}
+          {row.original.faq_question ||
+            row.original.faq_que ||
+            row.original.faq_heading ||
+            "-"}
         </span>
       ),
     },
@@ -87,7 +90,7 @@ const FaqList = () => {
       accessorKey: "faq_answer",
       cell: ({ row }) => (
         <span className="text-xs text-muted-foreground line-clamp-2 max-w-md">
-          {row.original.faq_answer}
+          {row.original.faq_answer || row.original.faq_ans || "-"}
         </span>
       ),
     },
@@ -184,16 +187,17 @@ const FaqList = () => {
           },
         }}
         addButton={{
-          to: "/faq/create",
+          to: "/create-faq",
           label: "Add FAQ",
         }}
         searchPlaceholder="Search FAQs..."
       />
 
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-        <AlertDialogContent className="rounded-xl border border-border bg-card/95 backdrop-blur-md">
+        <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Delete FAQ</AlertDialogTitle>
+
             <AlertDialogDescription className="text-muted-foreground">
               Are you sure you want to delete this FAQ? This action cannot be undone.
             </AlertDialogDescription>
@@ -221,3 +225,4 @@ const FaqList = () => {
 };
 
 export default FaqList;
+

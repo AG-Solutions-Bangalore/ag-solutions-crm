@@ -64,7 +64,9 @@ const DataTable = ({
   isFetching = false,
   hideSearch = false,
   hideColumns = false,
+  onRowClick,
 }) => {
+
   const isServer = !!serverPagination;
   const [sorting, setSorting] = useState([]);
   const [searchValue, setSearchValue] = useState("");
@@ -98,20 +100,22 @@ const DataTable = ({
     },
     manualPagination: isServer,
     pageCount: isServer ? (serverPagination?.pageCount ?? 1) : undefined,
-    autoResetPageIndex: true,
+    autoResetPageIndex: false,
     onPaginationChange: isServer
       ? (updater) => {
           const next =
             typeof updater === "function"
               ? updater({
-                  pageIndex: serverPagination.pageIndex ?? 0,
+                  pageIndex: serverPagination?.pageIndex ?? 0,
                   pageSize,
                 })
               : updater;
 
-          serverPagination.onPageChange?.(next.pageIndex);
+          console.log("[DataTable] onPaginationChange -> next:", next);
+          serverPagination?.onPageChange?.(next.pageIndex);
         }
       : setPagination,
+
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
@@ -201,12 +205,14 @@ const DataTable = ({
   }, [currentPage, totalPages]);
 
   const handlePageSelect = (pageIndex) => {
+    console.log("[DataTable] Clicked page index:", pageIndex, "page number:", pageIndex + 1, "isServer:", isServer);
     if (isServer) {
       serverPagination.onPageChange?.(pageIndex);
     } else {
       table.setPageIndex(pageIndex);
     }
   };
+
 
   const canPrevious = isServer
     ? currentPage > 0
@@ -273,7 +279,7 @@ const DataTable = ({
                   <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-lg border border-border bg-popover/95 backdrop-blur-md">
+              <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-lg border border-border bg-popover">
                 {table
                   .getAllColumns()
                   .filter((column) => column.getCanHide())
@@ -327,13 +333,10 @@ const DataTable = ({
         </div>
       </div>
 
-      {/* 🔹 Glassmorphic Table Container */}
-      <motion.div
+      {/* 🔹 Table Container */}
+      <div
         key={`table-container-${currentPage}`}
-        initial={{ opacity: 0, filter: "blur(6px)" }}
-        animate={{ opacity: 1, filter: "blur(0px)" }}
-        transition={{ duration: 0.3 }}
-        className="relative rounded-xl border border-border bg-card/95 backdrop-blur-md text-card-foreground shadow-2xs overflow-hidden opacity-100"
+        className="relative rounded-xl border border-border bg-card text-card-foreground shadow-2xs overflow-hidden opacity-100"
       >
         {/* Shimmer loading bar */}
         {isFetching && (
@@ -344,7 +347,7 @@ const DataTable = ({
 
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-muted/60 backdrop-blur-sm border-b border-border">
+            <TableHeader className="bg-muted/50 border-b border-border">
               {table.getHeaderGroups().map((hg) => (
                 <TableRow key={hg.id} className="border-b border-border hover:bg-transparent">
                   {expandableRow && <TableHead className="w-10" />}
@@ -367,13 +370,13 @@ const DataTable = ({
                           )}
 
                           {canSort && (
-                            <span className="inline-flex">
+                            <span className="text-muted-foreground">
                               {isSorted === "asc" ? (
-                                <ArrowUp className="h-3.5 w-3.5 text-primary shrink-0 font-bold" />
+                                <ArrowUp className="size-3 text-primary" />
                               ) : isSorted === "desc" ? (
-                                <ArrowDown className="h-3.5 w-3.5 text-primary shrink-0 font-bold" />
+                                <ArrowDown className="size-3 text-primary" />
                               ) : (
-                                <ArrowUpDown className="h-3.5 w-3.5 opacity-30 hover:opacity-100 shrink-0" />
+                                <ArrowUpDown className="size-3 opacity-40 hover:opacity-100 transition-opacity" />
                               )}
                             </span>
                           )}
@@ -389,59 +392,66 @@ const DataTable = ({
               {isLoading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length + (expandableRow ? 1 : 0) + 1}
-                    className="h-56 text-center"
+                    colSpan={columns.length + (expandableRow ? 1 : 0)}
+                    className="h-36 text-center"
                   >
-                    <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                      <Loader2 className="h-7 w-7 animate-spin text-primary" />
-                      <p className="text-xs font-medium">Loading records...</p>
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <span className="text-xs text-muted-foreground">Loading data...</span>
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row, index) => (
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
                   <Fragment key={row.id}>
-                    <motion.tr
-                      initial={{ opacity: 0, filter: "blur(4px)", y: 4 }}
-                      animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-                      transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.25) }}
-                      className="border-b border-border/60 hover:bg-accent/40 transition-colors opacity-100"
+                    <TableRow
+                      data-state={row.getIsSelected() && "selected"}
+                      className={`group border-b border-border/70 hover:bg-muted/40 transition-colors ${
+                        onRowClick ? "cursor-pointer" : ""
+                      }`}
+                      onClick={() => onRowClick && onRowClick(row.original)}
                     >
                       {expandableRow && (
-                        <TableCell className="w-10 p-2 text-center">
-                          <button
-                            type="button"
+                        <TableCell className="w-10 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 rounded-md"
                             onClick={() => toggleRow(row.id)}
-                            className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                           >
-                            {expandedRows[row.id] ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
-                            )}
-                          </button>
+                            <ChevronRight
+                              className={`size-3.5 transition-transform duration-200 ${
+                                expandedRows[row.id] ? "rotate-90 text-primary" : "text-muted-foreground"
+                              }`}
+                            />
+                          </Button>
                         </TableCell>
                       )}
 
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-3 px-4 text-xs text-foreground opacity-100">
+                        <TableCell key={cell.id} className="py-3 px-4 text-xs font-normal text-foreground">
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
                           )}
                         </TableCell>
                       ))}
-                    </motion.tr>
+                    </TableRow>
 
                     {expandedRows[row.id] && expandableRow && (
-                      <TableRow className="bg-muted/20 border-b border-border/60">
+                      <TableRow className="bg-muted/20 hover:bg-muted/20 border-b border-border/70">
                         <TableCell
-                          colSpan={
-                            row.getVisibleCells().length + (expandableRow ? 1 : 0)
-                          }
+                          colSpan={columns.length + 1}
                           className="p-4"
                         >
-                          {expandableRow(row.original)}
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            {expandableRow(row.original)}
+                          </motion.div>
                         </TableCell>
                       </TableRow>
                     )}
@@ -450,22 +460,14 @@ const DataTable = ({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length + (expandableRow ? 1 : 0) + 1}
-                    className="h-52 text-center"
+                    colSpan={columns.length + (expandableRow ? 1 : 0)}
+                    className="h-36 text-center"
                   >
-                    <div className="flex flex-col items-center justify-center gap-2.5 text-muted-foreground">
-                      <Inbox className="h-9 w-9 stroke-1 text-muted-foreground/60" />
-                      <p className="text-xs font-medium">No records found</p>
-                      {searchValue && (
-                        <Button
-                          variant="link"
-                          size="sm"
-                          onClick={handleClearSearch}
-                          className="h-auto p-0 text-xs text-primary"
-                        >
-                          Clear search filter
-                        </Button>
-                      )}
+                    <div className="flex flex-col items-center justify-center gap-1 text-muted-foreground">
+                      <p className="text-sm font-medium">No records found</p>
+                      <p className="text-xs text-muted-foreground/70">
+                        Try adjusting your search or filter parameters
+                      </p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -473,10 +475,10 @@ const DataTable = ({
             </TableBody>
           </Table>
         </div>
-      </motion.div>
+      </div>
 
-      {/* 🔹 Enhanced Pagination Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-1 px-1 text-xs opacity-100">
+      {/* 🔹 Bottom Pagination & Row Count Footer */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs pt-1 px-1">
         <div className="flex items-center gap-3 text-muted-foreground">
           <span>
             Showing <strong className="text-foreground font-semibold">{startRecord}</strong> to{" "}
@@ -493,7 +495,7 @@ const DataTable = ({
               <SelectTrigger className="h-8 w-18 text-xs rounded-lg border-border bg-background shadow-2xs">
                 <SelectValue placeholder={String(currentPageSize)} />
               </SelectTrigger>
-              <SelectContent align="start" className="min-w-18 rounded-xl shadow-lg border border-border bg-popover/95 backdrop-blur-md">
+              <SelectContent align="start" className="min-w-18 rounded-xl shadow-lg border border-border bg-popover">
                 {[10, 20, 50, 100].map((size) => (
                   <SelectItem key={size} value={String(size)} className="text-xs cursor-pointer">
                     {size}

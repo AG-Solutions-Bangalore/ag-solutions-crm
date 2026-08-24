@@ -201,23 +201,8 @@ export function AppSidebar({ ...props }) {
       </SidebarHeader>
 
       <SidebarContent
-        className="sidebar-content px-2 py-1 relative overflow-hidden"
-        onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => {
-          setIsHovered(false);
-          setMousePos({ x: -1000, y: -1000 });
-        }}
+        className="sidebar-content relative overflow-hidden"
       >
-        {/* 🔹 Smooth Cursor Follower Spotlight */}
-        <div
-          className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-200"
-          style={{
-            opacity: isHovered ? 1 : 0,
-            background: `radial-gradient(140px circle at ${mousePos.x}px ${mousePos.y}px, var(--sidebar-accent), transparent 75%)`,
-          }}
-        />
-
         <div className="relative z-10">
           <NavMain
             items={initialData.navMain}

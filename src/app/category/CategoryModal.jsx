@@ -54,30 +54,11 @@ const CategoryModal = ({ setOpenEdit, Category }) => {
         },
       });
 
-      queryClient.setQueryData(["category", null], (old) => {
-        if (!old?.data?.data) return old;
-
-        return {
-          ...old,
-          data: {
-            ...old.data,
-            data: old.data.data.map((item) =>
-              item.id === Category.id
-                ? {
-                    ...item,
-                    category_name: formData.category_name,
-                    category_status: formData.category_status,
-                  }
-                : item,
-            ),
-          },
-        };
-      });
-
+      queryClient.invalidateQueries({ queryKey: ["category"] });
       toast.success(response?.message || "Category updated successfully");
       setOpenEdit(false);
     } catch (error) {
-      toast.error("Failed to update category");
+      toast.error(error?.response?.data?.message || "Failed to update category");
     }
   };
 

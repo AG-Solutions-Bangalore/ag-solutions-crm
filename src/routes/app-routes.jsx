@@ -51,6 +51,14 @@ function AppRoutes() {
               </Suspense>
             }
           />
+          <Route
+            path="/campaign"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Campaign />
+              </Suspense>
+            }
+          />
 
           <Route
             path="/gallery-list"
@@ -61,6 +69,15 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/gallery"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <GalleryList />
+              </Suspense>
+            }
+          />
+
+          <Route
             path="/create-blog"
             element={
               <Suspense fallback={<LoadingBar />}>
@@ -68,6 +85,15 @@ function AppRoutes() {
               </Suspense>
             }
           />
+          <Route
+            path="/blog/create"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <CreateBlog />
+              </Suspense>
+            }
+          />
+
           <Route
             path="/enquiries"
             element={
@@ -77,7 +103,40 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/enquiry"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <EnquiryList />
+              </Suspense>
+            }
+          />
+
+          <Route
             path="/Category-list"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Category />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/category-list"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Category />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/category"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Category />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/categories"
             element={
               <Suspense fallback={<LoadingBar />}>
                 <Category />
@@ -87,6 +146,30 @@ function AppRoutes() {
 
           <Route
             path="/Sponsar-list"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Sponsor />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/sponsor-list"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Sponsor />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/sponsor"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Sponsor />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/sponsors"
             element={
               <Suspense fallback={<LoadingBar />}>
                 <Sponsor />
@@ -103,6 +186,14 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/blogs"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <BlogList />
+              </Suspense>
+            }
+          />
+          <Route
             path="/blog-edit/:id"
             element={
               <Suspense fallback={<LoadingBar />}>
@@ -110,6 +201,15 @@ function AppRoutes() {
               </Suspense>
             }
           />
+          <Route
+            path="/blog/edit/:id"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <UpdateBlog />
+              </Suspense>
+            }
+          />
+
           <Route
             path="/create-project"
             element={
@@ -119,6 +219,31 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/projects/create"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <CreateProjects />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/projects/edit/:id"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <CreateProjects />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/edit-project/:id"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <CreateProjects />
+              </Suspense>
+            }
+          />
+
+          <Route
             path="/newsLetter"
             element={
               <Suspense fallback={<LoadingBar />}>
@@ -126,6 +251,15 @@ function AppRoutes() {
               </Suspense>
             }
           />
+          <Route
+            path="/newsletter"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <Newsletter />
+              </Suspense>
+            }
+          />
+
           <Route
             path="/create-category"
             element={
@@ -135,6 +269,15 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/category/create"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <CreateCategory />
+              </Suspense>
+            }
+          />
+
+          <Route
             path="/projects"
             element={
               <Suspense fallback={<LoadingBar />}>
@@ -142,6 +285,7 @@ function AppRoutes() {
               </Suspense>
             }
           />
+
           <Route
             path="/settings"
             element={
@@ -150,8 +294,17 @@ function AppRoutes() {
               </Suspense>
             }
           />
+
           <Route
             path="/faq-list"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <FaqList />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/faqs"
             element={
               <Suspense fallback={<LoadingBar />}>
                 <FaqList />
@@ -167,7 +320,23 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/faq/create"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <CreateFaq />
+              </Suspense>
+            }
+          />
+          <Route
             path="/faq-edit/:id"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <UpdateFaq />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/faq/edit/:id"
             element={
               <Suspense fallback={<LoadingBar />}>
                 <UpdateFaq />

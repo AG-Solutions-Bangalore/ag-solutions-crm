@@ -1,20 +1,29 @@
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import React, { useEffect, useState } from "react";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { PROJECT_API } from "@/constants/apiConstants";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 import { store } from "@/store/store";
 import Redstar from "@/components/Redstar";
 import BASE_URL from "@/config/base-url";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
 const ProjectModal = ({ setOpenEdit, project, refetch }) => {
   const queryClient = useQueryClient();
-  const { trigger: updateProject } = useApiMutation();
+  const { trigger: updateProject, loading: isSubmitting } = useApiMutation();
   const [errors, setErrors] = useState({});
 
   const { data: pagesData, isLoading: isLoadingPages } = useQuery({
@@ -22,16 +31,13 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
     queryFn: async () => {
       const state = store.getState();
       const token = state.auth?.token;
-      const response = await fetch(
-        "https://ag-solutions.in/webapi/public/api/page",
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+      const response = await fetch(`${BASE_URL}/page`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-      );
+      });
 
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -72,21 +78,12 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
     }
   };
 
-  const convertToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
   useEffect(() => {
     if (!project) return;
     setFormData({
       page: project.page || "",
-      project_sort: project.project_sort || "",
-      project_name: project.project_name || "",
+      project_sort: project.project_sort ?? "",
+      project_name: project.project_name || project.project_title || "",
       project_type: project.project_type || "",
       project_description: project.project_description || "",
       project_image: null,
@@ -100,58 +97,67 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
   }, [project]);
 
   const handleUpdate = async () => {
+    if (!formData.page) {
+      toast.error("Please select a page");
+      return;
+    }
+    if (!formData.project_name.trim()) {
+      toast.error("Please enter project name");
+      return;
+    }
+
     const payload = new FormData();
     payload.append("page", formData.page);
-    payload.append("project_sort", formData.project_sort);
+    payload.append("project_sort", formData.project_sort || "0");
     payload.append("project_name", formData.project_name);
-    payload.append("project_type", formData.project_type);
-    payload.append("project_description", formData.project_description);
-    payload.append("project_image_alt", formData.project_image_alt);
-    payload.append("project_status", formData.project_status);
-    payload.append("project_industry", formData.project_industry);
-    payload.append("project_solution", formData.project_solution);
-    payload.append("project_features", formData.project_features);
-    payload.append("project_technology", formData.project_technology);
+    payload.append("project_title", formData.project_name);
+    payload.append("project_type", formData.project_type || "");
+    payload.append("project_description", formData.project_description || "");
+    payload.append("project_image_alt", formData.project_image_alt || "");
+    payload.append("project_status", formData.project_status || "Active");
+    payload.append("project_industry", formData.project_industry || "");
+    payload.append("project_solution", formData.project_solution || "");
+    payload.append("project_features", formData.project_features || "");
+    payload.append("project_technology", formData.project_technology || "");
+    payload.append("_method", "PUT");
 
-    // Append image file directly if present
-    if (formData.project_image) {
+    if (formData.project_image instanceof File) {
       payload.append("project_image", formData.project_image);
     }
 
     try {
-      await updateProject({
+      const res = await updateProject({
         url: PROJECT_API.updateById(project.id),
-        method: "PUT",
+        method: "POST",
         data: payload,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
-      // Invalidate project list cache to refresh data
-      queryClient.invalidateQueries(["project", null]);
-
-      if (refetch) refetch();
-      setOpenEdit(false);
+      if (res?.code === 200 || res?.code === 201 || res?.status === "success") {
+        toast.success(res?.message || "Project updated successfully");
+        queryClient.invalidateQueries({ queryKey: ["project"] });
+        if (refetch) refetch();
+        setOpenEdit(false);
+      } else {
+        toast.error(res?.message || "Failed to update project");
+      }
     } catch (error) {
-      console.error(error);
+      toast.error(error?.response?.data?.message || "Failed to update project");
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="relative bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        {/* X Close Button on top right */}
-        <button
-          onClick={() => setOpenEdit(false)}
-          className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <Dialog open={true} onOpenChange={(open) => !open && setOpenEdit(false)}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:rounded-xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
+            Edit Project
+          </DialogTitle>
+        </DialogHeader>
 
-        <h2 className="text-xl font-semibold mb-6">Edit Project</h2>
-
-        {/* 2-Column Responsive Form Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Row 1: Page & Project Sort */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-2">
           <div className="space-y-2">
             <Label htmlFor="page" className="text-sm font-medium">
               Page <Redstar />
@@ -182,83 +188,61 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
           <div className="space-y-2">
             <Label className="text-sm font-medium">Project Sort</Label>
             <Input
+              name="project_sort"
               type="number"
               value={formData.project_sort}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  project_sort: e.target.value,
-                })
-              }
+              onChange={handleInputChange}
+              placeholder="Sort order number"
             />
           </div>
 
-          {/* Row 2: Project Name & Project Type */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Project Name</Label>
+            <Label className="text-sm font-medium">Project Name <Redstar /></Label>
             <Input
+              name="project_name"
               value={formData.project_name}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  project_name: e.target.value,
-                })
-              }
+              onChange={handleInputChange}
+              placeholder="Enter project name"
             />
           </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">Project Type</Label>
             <Input
+              name="project_type"
               value={formData.project_type}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  project_type: e.target.value,
-                })
-              }
+              onChange={handleInputChange}
+              placeholder="Enter project type"
             />
           </div>
 
-          {/* Row 3: Industry & Technology */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Industry</Label>
             <Input
+              name="project_industry"
               value={formData.project_industry}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  project_industry: e.target.value,
-                })
-              }
+              onChange={handleInputChange}
+              placeholder="Enter industry"
             />
           </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">Technology</Label>
             <Input
+              name="project_technology"
               value={formData.project_technology}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  project_technology: e.target.value,
-                })
-              }
+              onChange={handleInputChange}
+              placeholder="e.g. React, Node.js"
             />
           </div>
 
-          {/* Row 4: Status & Image Alt Text */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Status</Label>
             <select
+              name="project_status"
               className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               value={formData.project_status}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  project_status: e.target.value,
-                })
-              }
+              onChange={handleInputChange}
             >
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
@@ -266,69 +250,56 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Features</Label>
-            <Textarea
-              rows={4}
-              value={formData.project_features}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  project_features: e.target.value,
-                })
-              }
-            />
-          </div>
-          {/* Row 5: Description & Solution */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Description</Label>
-            <Textarea
-              rows={4}
-              value={formData.project_description}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  project_description: e.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Solution</Label>
-            <Textarea
-              rows={4}
-              value={formData.project_solution}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  project_solution: e.target.value,
-                })
-              }
-            />
-          </div>
-
-          {/* Row 6: Features & Project Image (with inline preview) */}
-
-          <div className="space-y-2">
             <Label className="text-sm font-medium">Image Alt Text</Label>
             <Input
+              name="project_image_alt"
               value={formData.project_image_alt}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  project_image_alt: e.target.value,
-                })
-              }
+              onChange={handleInputChange}
+              placeholder="Alt text for image"
             />
           </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Project Image</Label>
-            <div className="flex items-center gap-4">
+
+          <div className="space-y-2 md:col-span-2">
+            <Label className="text-sm font-medium">Features</Label>
+            <Textarea
+              name="project_features"
+              rows={3}
+              value={formData.project_features}
+              onChange={handleInputChange}
+              placeholder="Project features..."
+            />
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <Label className="text-sm font-medium">Description</Label>
+            <Textarea
+              name="project_description"
+              rows={3}
+              value={formData.project_description}
+              onChange={handleInputChange}
+              placeholder="Project description..."
+            />
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <Label className="text-sm font-medium">Solution</Label>
+            <Textarea
+              name="project_solution"
+              rows={3}
+              value={formData.project_solution}
+              onChange={handleInputChange}
+              placeholder="Project solution..."
+            />
+          </div>
+
+          <div className="space-y-2 md:col-span-2 border border-border p-4 rounded-lg bg-muted/20">
+            <Label className="text-sm font-medium block mb-2">Project Image</Label>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               {project?.project_image && (
                 <img
                   src={`https://ag-solutions.in/webapi/public/assets/images/project_images/${project.project_image}`}
-                  alt={project.project_name}
-                  className="w-16 h-16 object-cover rounded border"
+                  alt={project.project_name || project.project_title || "Project image"}
+                  className="w-20 h-14 object-cover rounded-md border border-border shadow-2xs"
                 />
               )}
               <Input
@@ -337,34 +308,42 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    project_image: e.target.files?.[0],
+                    project_image: e.target.files?.[0] || null,
                   })
                 }
-                fe
               />
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-2 mt-8">
-          <button
+        <DialogFooter className="gap-2 pt-4">
+          <Button
+            variant="outline"
             onClick={() => setOpenEdit(false)}
-            className="px-4 py-2 border rounded hover:bg-gray-50 transition-colors"
+            type="button"
           >
             Cancel
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={handleUpdate}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+            disabled={isSubmitting}
+            type="button"
           >
-            Update
-          </button>
-        </div>
-      </div>
-    </div>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              "Update Project"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 export default ProjectModal;
+

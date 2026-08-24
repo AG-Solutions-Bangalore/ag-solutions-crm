@@ -9,42 +9,38 @@ import { Textarea } from "@/components/ui/textarea";
 import { PROJECT_API } from "@/constants/apiConstants";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderPlus, Loader2 } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { FolderPlus, Edit, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { store } from "@/store/store";
 import BASE_URL from "@/config/base-url";
 
 const CreateProjects = () => {
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { trigger, loading: isSubmitting } = useApiMutation();
 
-  // Fetch pages for the dropdown using the provided API endpoint and Bearer Token
   const { data: pagesData, isLoading: isLoadingPages } = useQuery({
     queryKey: ["pages-dropdown"],
     queryFn: async () => {
-      // Get the token from local storage (Update this if you store it differently e.g. cookies/sessionStorage)
       const state = store.getState();
       const token = state.auth?.token;
-      const response = await fetch(
-        "https://ag-solutions.in/webapi/public/api/page",
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+      const response = await fetch(`${BASE_URL}/page`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-      );
+      });
 
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
 
       const result = await response.json();
-      // The API returns the array wrapped in a 'data' object
       return result?.data || [];
     },
   });
@@ -61,12 +57,57 @@ const CreateProjects = () => {
     project_solution: "",
     project_features: "",
     project_technology: "",
+    project_status: "Active",
   });
 
   const [errors, setErrors] = useState({});
   const [preview, setPreview] = useState({
     project_image: "",
   });
+
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    const fetchProjectDetails = async () => {
+      try {
+        const state = store.getState();
+        const token = state.auth?.token;
+        const response = await fetch(`${BASE_URL}/project/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const result = await response.json();
+        const project = result?.data?.data || result?.data;
+        if (project) {
+          setFormData({
+            page: project.page || "",
+            project_sort: project.project_sort ?? "",
+            project_name: project.project_name || project.project_title || "",
+            project_type: project.project_type || "",
+            project_description: project.project_description || "",
+            project_image: null,
+            project_image_alt: project.project_image_alt || "",
+            project_industry: project.project_industry || "",
+            project_solution: project.project_solution || "",
+            project_features: project.project_features || "",
+            project_technology: project.project_technology || "",
+            project_status: project.project_status || "Active",
+          });
+
+          if (project.project_image) {
+            setPreview({
+              project_image: `https://ag-solutions.in/webapi/public/assets/images/project_images/${project.project_image}`,
+            });
+          }
+        }
+      } catch (err) {
+        toast.error("Failed to load project details");
+      }
+    };
+
+    fetchProjectDetails();
+  }, [id, isEditMode]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -91,20 +132,12 @@ const CreateProjects = () => {
       newErrors.page = "Page is required";
       isValid = false;
     }
-    if (!formData.project_name) {
+    if (!formData.project_name.trim()) {
       newErrors.project_name = "Project name is required";
       isValid = false;
     }
-    if (!formData.project_type) {
-      newErrors.project_type = "Project type is required";
-      isValid = false;
-    }
-    if (!formData.project_image) {
+    if (!isEditMode && !formData.project_image && !preview.project_image) {
       newErrors.project_image = "Project image is required";
-      isValid = false;
-    }
-    if (!formData.project_image_alt) {
-      newErrors.project_image_alt = "Image alt text is required";
       isValid = false;
     }
 
@@ -136,23 +169,29 @@ const CreateProjects = () => {
 
     const formDataObj = new FormData();
     formDataObj.append("page", formData.page);
-    formDataObj.append("project_sort", formData.project_sort);
+    formDataObj.append("project_sort", formData.project_sort || "0");
     formDataObj.append("project_name", formData.project_name);
-    formDataObj.append("project_type", formData.project_type);
-    formDataObj.append("project_description", formData.project_description);
-    formDataObj.append("project_image_alt", formData.project_image_alt);
-    formDataObj.append("project_industry", formData.project_industry);
-    formDataObj.append("project_solution", formData.project_solution);
-    formDataObj.append("project_features", formData.project_features);
-    formDataObj.append("project_technology", formData.project_technology);
+    formDataObj.append("project_title", formData.project_name);
+    formDataObj.append("project_type", formData.project_type || "");
+    formDataObj.append("project_description", formData.project_description || "");
+    formDataObj.append("project_image_alt", formData.project_image_alt || "");
+    formDataObj.append("project_industry", formData.project_industry || "");
+    formDataObj.append("project_solution", formData.project_solution || "");
+    formDataObj.append("project_features", formData.project_features || "");
+    formDataObj.append("project_technology", formData.project_technology || "");
+    formDataObj.append("project_status", formData.project_status || "Active");
 
     if (formData.project_image instanceof File) {
       formDataObj.append("project_image", formData.project_image);
     }
 
+    if (isEditMode) {
+      formDataObj.append("_method", "PUT");
+    }
+
     try {
       const res = await trigger({
-        url: PROJECT_API.create,
+        url: isEditMode ? PROJECT_API.updateById(id) : PROJECT_API.create,
         method: "post",
         data: formDataObj,
         headers: {
@@ -160,14 +199,17 @@ const CreateProjects = () => {
         },
       });
 
-      if (res?.code === 201 || res?.code === 200) {
-        toast.success(res?.message || "Project created successfully");
-        // Invalidate the project list cache to refresh data
-        queryClient.invalidateQueries(["project", null]);
-        // Adjust the route as per your routing setup
+      if (res?.code === 201 || res?.code === 200 || res?.status === "success") {
+        toast.success(
+          res?.message ||
+            (isEditMode
+              ? "Project updated successfully"
+              : "Project created successfully")
+        );
+        queryClient.invalidateQueries({ queryKey: ["project"] });
         navigate("/projects");
       } else {
-        toast.error(res?.message || "Failed to create project");
+        toast.error(res?.message || "Failed to save project");
       }
     } catch (error) {
       const errorsMsg = error?.response?.data?.message;
@@ -178,9 +220,13 @@ const CreateProjects = () => {
   return (
     <div className="max-w-full mx-auto">
       <PageHeader
-        icon={FolderPlus}
-        title="Add New Project"
-        description="Fill in the details to register a new project in the system."
+        icon={isEditMode ? Edit : FolderPlus}
+        title={isEditMode ? "Edit Project" : "Add New Project"}
+        description={
+          isEditMode
+            ? "Update existing project details and portfolio assets."
+            : "Fill in the details to register a new project in the system."
+        }
         rightContent={
           <div className="flex justify-end gap-2 pt-4">
             <Button
@@ -199,8 +245,10 @@ const CreateProjects = () => {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  {isEditMode ? "Updating..." : "Creating..."}
                 </>
+              ) : isEditMode ? (
+                "Update Project"
               ) : (
                 "Create Project"
               )}
@@ -265,7 +313,7 @@ const CreateProjects = () => {
             {/* Project Type */}
             <div className="space-y-2">
               <Label htmlFor="project_type" className="text-sm font-medium">
-                Project Type <Redstar />
+                Project Type
               </Label>
               <Input
                 id="project_type"
@@ -274,11 +322,7 @@ const CreateProjects = () => {
                 placeholder="Enter project type"
                 value={formData.project_type}
                 onChange={handleInputChange}
-                className={errors.project_type ? "border-red-500" : ""}
               />
-              {errors.project_type && (
-                <p className="text-sm text-red-500">{errors.project_type}</p>
-              )}
             </div>
 
             {/* Project Sort */}
@@ -378,10 +422,11 @@ const CreateProjects = () => {
             </div>
 
             {/* Project Image Section */}
-            <div className="space-y-4 md:col-span-2 border p-4 rounded-lg bg-gray-50/50">
-              <h3 className="font-medium text-base">
-                Media <Redstar />
+            <div className="space-y-4 md:col-span-2 border border-border p-4 rounded-lg bg-card">
+              <h3 className="font-medium text-base text-foreground">
+                Media {!isEditMode && <Redstar />}
               </h3>
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -415,7 +460,7 @@ const CreateProjects = () => {
                     htmlFor="project_image_alt"
                     className="text-sm font-medium"
                   >
-                    Image Alt Text <Redstar />
+                    Image Alt Text
                   </Label>
                   <Input
                     id="project_image_alt"
@@ -424,13 +469,7 @@ const CreateProjects = () => {
                     placeholder="Enter image alt text"
                     value={formData.project_image_alt}
                     onChange={handleInputChange}
-                    className={errors.project_image_alt ? "border-red-500" : ""}
                   />
-                  {errors.project_image_alt && (
-                    <p className="text-sm text-red-500">
-                      {errors.project_image_alt}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -442,3 +481,4 @@ const CreateProjects = () => {
 };
 
 export default CreateProjects;
+

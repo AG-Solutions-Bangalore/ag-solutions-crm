@@ -41,8 +41,8 @@ const CreateCategory = () => {
   const validateForm = () => {
     const newErrors = {};
     let isValid = true;
-    if (!categoryName) {
-      newErrors.page = "CategoryName is required";
+    if (!categoryName.trim()) {
+      newErrors.category_name = "Category name is required";
       isValid = false;
     }
     setErrors(newErrors);
@@ -56,7 +56,7 @@ const CreateCategory = () => {
       return;
     }
     const formDataObj = new FormData();
-    formDataObj.append("category_name", categoryName);
+    formDataObj.append("category_name", categoryName.trim());
     try {
       const res = await trigger({
         url: CATEGORY_API.create,
@@ -69,9 +69,8 @@ const CreateCategory = () => {
 
       if (res?.code === 201 || res?.code === 200) {
         toast.success(res?.message || "Category created successfully");
-        queryClient.invalidateQueries(["category", null]);
-        // Adjust the route as per your routing setup
-        navigate("/category-list");
+        queryClient.invalidateQueries({ queryKey: ["category"] });
+        navigate("/Category-list");
       } else {
         toast.error(res?.message || "Failed to create Category");
       }
@@ -86,7 +85,7 @@ const CreateCategory = () => {
       <PageHeader
         icon={FolderPlus}
         title="Add New Category"
-        description="Fill in the details to register a new project in the system."
+        description="Fill in the details to register a new category in the system."
         rightContent={
           <div className="flex justify-end gap-2 pt-4">
             <Button
@@ -98,7 +97,7 @@ const CreateCategory = () => {
             </Button>
             <Button
               type="submit"
-              form="create-project-form"
+              form="create-category-form"
               className="px-8"
               disabled={isSubmitting}
             >
@@ -117,28 +116,25 @@ const CreateCategory = () => {
       <Card className="mt-2">
         <CardContent className="p-4">
           <form
-            id="create-project-form"
+            id="create-category-form"
             onSubmit={handleSubmit}
             className="grid grid-cols-1 md:grid-cols-2 gap-6"
           >
-            {/* Page Dropdown */}
-
-            {/* Project Name */}
             <div className="space-y-2">
-              <Label htmlFor="project_name" className="text-sm font-medium">
+              <Label htmlFor="category_name" className="text-sm font-medium">
                 Category Name <Redstar />
               </Label>
               <Input
-                id="project_name"
-                name="project_name"
+                id="category_name"
+                name="category_name"
                 type="text"
                 placeholder="Enter Category name"
                 value={categoryName}
                 onChange={handleInputChange}
-                className={errors.project_name ? "border-red-500" : ""}
+                className={errors.category_name ? "border-red-500" : ""}
               />
-              {errors.project_name && (
-                <p className="text-sm text-red-500">{errors.project_name}</p>
+              {errors.category_name && (
+                <p className="text-sm text-red-500">{errors.category_name}</p>
               )}
             </div>
           </form>

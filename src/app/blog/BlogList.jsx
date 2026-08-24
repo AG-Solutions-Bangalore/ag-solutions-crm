@@ -8,13 +8,28 @@ import { useGetApiMutation } from "@/hooks/useGetApiMutation";
 import BASE_URL from "@/config/base-url";
 import { getImageBaseUrl, getNoImageUrl } from "@/utils/imageUtils";
 import ToggleStatus from "@/components/toogle/status-toogle";
-import { Calendar, Edit } from "lucide-react";
+import { Calendar, Edit, Trash2 } from "lucide-react";
 import DataTable from "@/components/common/data-table";
 import ImageCell from "@/components/common/ImageCell";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+
 import { motion } from "framer-motion";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 const BlogList = () => {
+  const [deleteId, setDeleteId] = useState(null);
+  const [openDelete, setOpenDelete] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -23,8 +38,33 @@ const BlogList = () => {
     queryKey: ["blog"],
   });
 
+  const { trigger: deleteTrigger } = useApiMutation();
+
+  const handleDelete = async (id) => {
+    try {
+      const res = await deleteTrigger({
+        url: BLOG_API.deleteById(id),
+        method: "delete",
+      });
+      if (res?.code === 200 || res?.code === 201) {
+        queryClient.invalidateQueries({ queryKey: ["blog"] });
+        toast.success(res?.message || "Blog deleted successfully");
+      } else {
+        toast.error(res?.message || "Failed to delete blog");
+      }
+    } catch (error) {
+      toast.error("Something went wrong while deleting");
+    }
+  };
+
   const blogBaseUrl = getImageBaseUrl(data?.image_url, "Blog");
   const noImageUrl = getNoImageUrl(data?.image_url);
+
+  const blogList = Array.isArray(data?.data?.data)
+    ? data.data.data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
 
   const columns = [
     {
@@ -68,11 +108,12 @@ const BlogList = () => {
       header: "Category",
       accessorKey: "categories",
       cell: ({ row }) => (
-        <span className="text-xs font-medium text-foreground bg-muted/60 px-2 py-0.5 rounded-md">
+        <Badge variant="indigo" className="text-xs font-medium">
           {row.original.categories || "General"}
-        </span>
+        </Badge>
       ),
     },
+
     {
       header: "Created Date",
       accessorKey: "blog_created_date",
@@ -111,7 +152,7 @@ const BlogList = () => {
       header: "Actions",
       accessorKey: "actions",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
@@ -119,6 +160,17 @@ const BlogList = () => {
             onClick={() => navigate(`/blog-edit/${row.original.id}`)}
           >
             <Edit className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            title="Delete Blog"
+            onClick={() => {
+              setDeleteId(row.original.id);
+              setOpenDelete(true);
+            }}
+          >
+            <Trash2 className="size-3.5" />
           </button>
         </div>
       ),
@@ -160,7 +212,7 @@ const BlogList = () => {
 
       <DataTable
         columns={columns}
-        data={data?.data?.data || []}
+        data={blogList}
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
@@ -170,8 +222,37 @@ const BlogList = () => {
         }}
         searchPlaceholder="Search blogs..."
       />
+
+      <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
+        <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Delete Blog</AlertDialogTitle>
+
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to delete this blog post? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-lg" onClick={() => setDeleteId(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg"
+              onClick={() => {
+                handleDelete(deleteId);
+                setOpenDelete(false);
+                setDeleteId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };
 
 export default BlogList;
+

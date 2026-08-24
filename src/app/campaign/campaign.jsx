@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import DataTable from "@/components/common/data-table";
+import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/loader/loader";
+
 import BASE_URL from "@/config/base-url";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
@@ -30,9 +32,12 @@ const Campaign = () => {
   });
 
   useEffect(() => {
-    if (data?.data?.data) {
-      setCampaigns(data.data.data);
-    }
+    const list = Array.isArray(data?.data?.data)
+      ? data.data.data
+      : Array.isArray(data?.data)
+      ? data.data
+      : [];
+    setCampaigns(list);
   }, [data]);
 
   const { trigger: deleteCampaign } = useApiMutation();
@@ -44,11 +49,13 @@ const Campaign = () => {
         method: "DELETE",
       });
       setCampaigns((prev) => prev.filter((item) => item.id !== id));
+      queryClient.invalidateQueries({ queryKey: ["campaign-visit-all"] });
       toast.success("Campaign visit record deleted");
     } catch {
       toast.error("Failed to delete campaign record");
     }
   };
+
 
   const columns = [
     {
@@ -81,11 +88,12 @@ const Campaign = () => {
       header: "Campaign",
       accessorKey: "utm_campaign",
       cell: ({ row }) => (
-        <span className="text-xs font-medium text-foreground bg-muted/60 px-2 py-0.5 rounded-md">
+        <Badge variant="cyan" className="text-xs font-medium">
           {row.original.utm_campaign || "-"}
-        </span>
+        </Badge>
       ),
     },
+
     {
       header: "Source",
       accessorKey: "utm_source",
@@ -151,9 +159,10 @@ const Campaign = () => {
         searchPlaceholder="Search by campaign or source..."
       />
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="rounded-xl border border-border bg-card/95 backdrop-blur-md">
+        <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Delete Record</AlertDialogTitle>
+
             <AlertDialogDescription className="text-muted-foreground">
               Are you sure you want to permanently delete this campaign visit record?
             </AlertDialogDescription>

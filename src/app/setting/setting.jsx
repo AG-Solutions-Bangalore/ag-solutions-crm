@@ -124,7 +124,7 @@ const Settings = () => {
 
       <div className="grid gap-6">
         {/* 🔹 Appearance / Theme Settings */}
-        <Card className="rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-2xs">
+        <Card className="rounded-xl border border-border bg-card shadow-2xs">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Palette className="h-5 w-5 text-primary" />
@@ -176,7 +176,8 @@ const Settings = () => {
         </Card>
 
         {/* 🔹 Password Change Settings */}
-        <Card className="rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-2xs">
+        <Card className="rounded-xl border border-border bg-card shadow-2xs">
+
           <CardHeader>
             <div className="flex items-center gap-2">
               <Lock className="h-5 w-5 text-primary" />

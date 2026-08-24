@@ -53,46 +53,64 @@ export const TRIP_API = {
 
 
 export const ENQUIRY_API = {
+  list: "/enquiry",
+  byId: (id) => `/enquiry/${id}`,
   deleteById: (id) => `/enquiry/${id}`,
-
+  updateStatus: (id) => `/enquiry/${id}`,
 };
 
-
-export const CATEGORY_API={
+export const CATEGORY_API = {
+  list: "/category",
+  byId: (id) => `/category/${id}`,
   updateStatus: (id) => `/categorys/${id}/status`,
-  update:(id)=>`/category/${id}`,
-  create:`/category`
-}
+  update: (id) => `/category/${id}`,
+  updateById: (id) => `/category/${id}?_method=PUT`,
+  deleteById: (id) => `/category/${id}`,
+  create: `/category`,
+};
+
 export const PROJECT_API = {
+  list: "/project",
+  byId: (id) => `/project/${id}`,
   deleteById: (id) => `/project/${id}`,
   updateStatus: (id) => `/projects/${id}/status`,
-  updateById: (id) => `/project/${id}`,
+  updateById: (id) => `/project/${id}?_method=PUT`,
   create: "/project",
-  updateSort:(id)=>`/projects/${id}/sort`
+  updateSort: (id) => `/projects/${id}/sort`,
 };
-export const CAMPAING_API = {
+
+export const CAMPAIGN_API = {
+  list: "/campaign-visit",
   deleteById: (id) => `/campaign-visit/${id}`,
 };
-export const GALLERYS_API={
+export const CAMPAING_API = CAMPAIGN_API;
 
+export const GALLERYS_API = {
+  list: "/link-gallery",
+  create: "/link-gallery",
+  byId: (id) => `/link-gallery/${id}`,
+  deleteById: (id) => `/link-gallery/${id}`,
+  updateById: (id) => `/link-gallery/${id}?_method=PUT`,
+};
 
-
-}
 export const SPONSOR_API = {
   create: "/sponsor",
+  byId: (id) => `/sponsor/${id}`,
   updateById: (id) => `/sponsor/${id}`,
   deleteById: (id) => `/sponsor/${id}`,
   list: "/sponsor",
 };
 export const SPONSAR_API = SPONSOR_API;
-export const BLOG_LIST={
-        updateStatus: (id) => `/blogs/${id}/status`,
-        create:"/blog",
-        updateById: (id) => `/blog/${id}`,
-        blogByID:(id)=>`/blog/${id}`,
 
-
-}
+export const BLOG_LIST = {
+  list: "/blog",
+  updateStatus: (id) => `/blogs/${id}/status`,
+  create: "/blog",
+  updateById: (id) => `/blog/${id}?_method=PUT`,
+  blogByID: (id) => `/blog/${id}`,
+  byId: (id) => `/blog/${id}`,
+  deleteById: (id) => `/blog/${id}`,
+};
 export const REPORT_API = {
   employee: "/employee-report",
   site: "/site-report",
@@ -162,6 +180,7 @@ export const FAQ_API = {
   byId: (id) => `/faq/${id}`,
   updateById: (id) => `/faq/${id}?_method=PUT`,
   deleteFaq: (id) => `/faq/${id}`,
+  deleteById: (id) => `/faq/${id}`,
   deleteSub: (id) => `/faq-sub/${id}`,
   updateStatus: (id) => `/faqs/${id}/status`,
 };

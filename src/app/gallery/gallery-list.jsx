@@ -9,8 +9,8 @@ import { toast } from "sonner";
 import { getImageBaseUrl, getNoImageUrl } from "@/utils/imageUtils";
 import { GALLERY_API } from "@/constants/apiConstants";
 import ImageCell from "@/components/common/ImageCell";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import CreateGalleryModal from "./CreateGalleryModal";
 
 import {
   AlertDialog,
@@ -27,7 +27,7 @@ import Loader from "@/components/loader/loader";
 const GalleryList = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
-  const navigate = useNavigate();
+  const [openCreate, setOpenCreate] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
@@ -57,6 +57,12 @@ const GalleryList = () => {
   const galleryBaseUrl = getImageBaseUrl(data?.image_url, "Gallery");
   const noImageUrl = getNoImageUrl(data?.image_url);
 
+  const galleryList = Array.isArray(data?.data?.data)
+    ? data.data.data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+
   const columns = [
     {
       header: "SL No",
@@ -71,14 +77,17 @@ const GalleryList = () => {
       header: "Image",
       accessorKey: "gallery_image",
       cell: ({ row }) => {
-        const fileName = row.original.gallery_image;
+        const fileName =
+          row.original.gallery_image ||
+          row.original.link_gallery_image ||
+          row.original.image;
         const src = fileName ? `${galleryBaseUrl}${fileName}` : noImageUrl;
 
         return (
           <ImageCell
             src={src}
             fallback={noImageUrl}
-            alt={row.original.gallery_name}
+            alt={row.original.gallery_name || row.original.gallery_title || "Gallery image"}
             width={70}
             height={45}
           />
@@ -91,7 +100,7 @@ const GalleryList = () => {
       accessorKey: "gallery_name",
       cell: ({ row }) => (
         <span className="font-semibold text-foreground text-xs">
-          {row.original.gallery_name}
+          {row.original.gallery_name || row.original.gallery_title || `Image #${row.original.id}`}
         </span>
       ),
     },
@@ -150,21 +159,24 @@ const GalleryList = () => {
 
       <DataTable
         columns={columns}
-        data={data?.data || []}
+        data={galleryList}
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
         addButton={{
-          to: "/gallery/create",
+          onClick: () => setOpenCreate(true),
           label: "Add Image",
         }}
         searchPlaceholder="Search gallery..."
       />
 
+      {openCreate && <CreateGalleryModal setOpenModal={setOpenCreate} />}
+
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-        <AlertDialogContent className="rounded-xl border border-border bg-card/95 backdrop-blur-md">
+        <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Delete Image</AlertDialogTitle>
+
             <AlertDialogDescription className="text-muted-foreground">
               Are you sure you want to delete this image? This action cannot be undone.
             </AlertDialogDescription>
@@ -192,3 +204,4 @@ const GalleryList = () => {
 };
 
 export default GalleryList;
+

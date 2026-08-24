@@ -1,11 +1,6 @@
 import DataTable from "@/components/common/data-table";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -18,11 +13,13 @@ import { PROJECT_API } from "@/constants/apiConstants";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowUpDown, Edit, MoreVertical, Trash2 } from "lucide-react";
+import { ArrowUpDown, Edit, Trash2 } from "lucide-react";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import ImageCell from "@/components/common/ImageCell";
+import { getImageBaseUrl, getNoImageUrl } from "@/utils/imageUtils";
+import ProjectModal from "./projectModal";
 
 import {
   AlertDialog,
@@ -40,13 +37,14 @@ import ToggleStatus from "@/components/toogle/status-toogle";
 const Projects = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [selectedPage, setSelectedPage] = useState("all");
   const [sortOrders, setSortOrders] = useState({});
   const [loadingId, setLoadingId] = useState(null);
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isFetching, error } = useGetApiMutation({
+  const { data, isLoading, isFetching, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/project`,
     queryKey: ["project"],
   });
@@ -108,7 +106,15 @@ const Projects = () => {
     }
   };
 
-  const allProjects = data?.data || [];
+  const projectBaseUrl = getImageBaseUrl(data?.image_url, "Project");
+  const noImageUrl = getNoImageUrl(data?.image_url);
+
+  const allProjects = Array.isArray(data?.data?.data)
+    ? data.data.data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+
   const uniquePages = [
     ...new Set(allProjects.map((item) => item.page).filter(Boolean)),
   ];
@@ -129,11 +135,32 @@ const Projects = () => {
       ),
     },
     {
+      header: "Image",
+      accessorKey: "project_image",
+      cell: ({ row }) => {
+        const fileName = row.original.project_image;
+        const src = fileName
+          ? `${projectBaseUrl}${fileName}`
+          : noImageUrl;
+
+        return (
+          <ImageCell
+            src={src}
+            fallback={noImageUrl}
+            alt={row.original.project_title || row.original.project_name || "Project image"}
+            width={65}
+            height={40}
+          />
+        );
+      },
+      enableSorting: false,
+    },
+    {
       header: "Project Title",
       accessorKey: "project_title",
       cell: ({ row }) => (
-        <span className="font-semibold text-foreground text-xs">
-          {row.original.project_title}
+        <span className="font-semibold text-foreground text-xs line-clamp-2 max-w-xs">
+          {row.original.project_title || row.original.project_name || "-"}
         </span>
       ),
     },
@@ -141,11 +168,12 @@ const Projects = () => {
       header: "Page Type",
       accessorKey: "page",
       cell: ({ row }) => (
-        <span className="text-xs font-medium text-foreground bg-muted/60 px-2 py-0.5 rounded-md">
+        <Badge variant="purple" className="text-xs font-medium">
           {row.original.page || "-"}
-        </span>
+        </Badge>
       ),
     },
+
     {
       header: "Sort Order",
       accessorKey: "project_sort",
@@ -201,7 +229,10 @@ const Projects = () => {
             type="button"
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
             title="Edit Project"
-            onClick={() => navigate(`/projects/edit/${row.original.id}`)}
+            onClick={() => {
+              setSelectedProject(row.original);
+              setOpenEdit(true);
+            }}
           >
             <Edit className="size-3.5" />
           </button>
@@ -265,7 +296,7 @@ const Projects = () => {
               <SelectTrigger className="h-9 w-44 text-xs rounded-lg border-border bg-background shadow-2xs">
                 <SelectValue placeholder="Filter by page" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl shadow-lg border border-border bg-popover/95 backdrop-blur-md">
+              <SelectContent className="rounded-xl shadow-lg border border-border bg-popover">
                 <SelectItem value="all" className="text-xs">All Pages</SelectItem>
                 {uniquePages.map((page) => (
                   <SelectItem key={page} value={page} className="text-xs">
@@ -277,16 +308,25 @@ const Projects = () => {
           </div>
         }
         addButton={{
-          to: "/projects/create",
+          to: "/create-project",
           label: "Add Project",
         }}
         searchPlaceholder="Search projects..."
       />
 
+      {openEdit && selectedProject && (
+        <ProjectModal
+          setOpenEdit={setOpenEdit}
+          project={selectedProject}
+          refetch={refetch}
+        />
+      )}
+
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-        <AlertDialogContent className="rounded-xl border border-border bg-card/95 backdrop-blur-md">
+        <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Delete Project</AlertDialogTitle>
+
             <AlertDialogDescription className="text-muted-foreground">
               Are you sure you want to delete this project? This action cannot be undone.
             </AlertDialogDescription>
@@ -314,3 +354,4 @@ const Projects = () => {
 };
 
 export default Projects;
+

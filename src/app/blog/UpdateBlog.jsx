@@ -62,10 +62,16 @@ const UpdateBlog = () => {
   //     return res.data;
   //   },
   // });
-  const categories =
-    categoriesResponse?.data?.data?.filter(
-      (item) => item.category_status === "Active",
-    ) || [];
+  const rawCategories = Array.isArray(categoriesResponse?.data?.data)
+    ? categoriesResponse.data.data
+    : Array.isArray(categoriesResponse?.data)
+    ? categoriesResponse.data
+    : [];
+
+  const categories = rawCategories.filter(
+    (item) => item.category_status === "Active" || !item.category_status
+  );
+
   const [formData, setFormData] = useState({
     blog_slug: "",
     blog_index: "Yes",
@@ -88,9 +94,11 @@ const UpdateBlog = () => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    if (!data?.data) return;
+    if (!data) return;
 
-    const blog = data.data;
+    const blog = data?.data?.data || data?.data;
+
+    if (!blog) return;
 
     setFormData({
       blog_slug: blog.blog_slug || "",
@@ -103,8 +111,11 @@ const UpdateBlog = () => {
       blog_banner_image_alt: blog.blog_banner_image_alt || "",
       blog_updated_date:
         blog.blog_updated_date || new Date().toISOString().split("T")[0],
-      blog_categories_ids: "",
-
+      blog_categories_ids:
+        blog.blog_categories_ids ||
+        blog.blog_category_id ||
+        (Array.isArray(blog.categories) ? blog.categories.map((c) => c.id).join(",") : "") ||
+        "",
       blog_front: blog.blog_front || "",
       blog_featured: blog.blog_featured || "No",
       blog_status: blog.blog_status || "Active",
@@ -112,10 +123,11 @@ const UpdateBlog = () => {
 
     setPreview({
       blog_banner_image: blog.blog_banner_image
-        ? `${BASE_URL}/assets/images/blog_images/${blog.blog_banner_image}`
+        ? `https://ag-solutions.in/webapi/public/assets/images/blog_images/${blog.blog_banner_image}`
         : "",
     });
   }, [data]);
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -500,8 +512,9 @@ const UpdateBlog = () => {
             </div>
 
             {/* Banner Image Upload */}
-            <div className="space-y-4 md:col-span-2 border p-4 rounded-lg bg-gray-50/50">
-              <h3 className="font-medium text-base">Blog Banner Image</h3>
+            <div className="space-y-4 md:col-span-2 border border-border p-4 rounded-lg bg-card">
+              <h3 className="font-medium text-base text-foreground">Blog Banner Image</h3>
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
