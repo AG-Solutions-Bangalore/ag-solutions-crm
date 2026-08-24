@@ -325,19 +325,23 @@ const Projects = () => {
           </div>
         }
         addButton={{
-          to: "/create-project",
+          onClick: () => {
+            setSelectedProject(null);
+            setOpenEdit(true);
+          },
           label: "Add Project",
         }}
         searchPlaceholder="Search projects..."
       />
 
-      {openEdit && selectedProject && (
+      {openEdit && (
         <ProjectModal
           setOpenEdit={setOpenEdit}
           project={selectedProject}
           refetch={refetch}
         />
       )}
+
 
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
         <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">

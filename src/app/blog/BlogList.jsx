@@ -27,20 +27,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+import BlogModal from "./BlogModal";
+
 const BlogList = () => {
   const [pageIndex, setPageIndex] = useState(0);
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedBlogId, setSelectedBlogId] = useState(null);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
-  const { data, isLoading, isFetching, error } = useGetApiMutation({
+  const { data, isLoading, isFetching, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/blog`,
     queryKey: ["blog", pageIndex],
     params: {
       page: pageIndex + 1,
     },
   });
+
 
   const { trigger: deleteTrigger } = useApiMutation();
 
@@ -165,7 +169,10 @@ const BlogList = () => {
             type="button"
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
             title="Edit Blog"
-            onClick={() => navigate(`/blog-edit/${row.original.id}`)}
+            onClick={() => {
+              setSelectedBlogId(row.original.id);
+              setOpenModal(true);
+            }}
           >
             <Edit className="size-3.5" />
           </button>
@@ -231,11 +238,23 @@ const BlogList = () => {
           onPageChange: (newPage) => setPageIndex(newPage),
         }}
         addButton={{
-          onClick: () => navigate("/create-blog"),
+          onClick: () => {
+            setSelectedBlogId(null);
+            setOpenModal(true);
+          },
           label: "Create Blog",
         }}
         searchPlaceholder="Search blogs..."
       />
+
+      {openModal && (
+        <BlogModal
+          setOpenModal={setOpenModal}
+          blogId={selectedBlogId}
+          refetch={refetch}
+        />
+      )}
+
 
 
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>

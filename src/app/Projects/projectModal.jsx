@@ -22,8 +22,9 @@ import {
 import { Button } from "@/components/ui/button";
 
 const ProjectModal = ({ setOpenEdit, project, refetch }) => {
+  const isEditMode = Boolean(project?.id);
   const queryClient = useQueryClient();
-  const { trigger: updateProject, loading: isSubmitting } = useApiMutation();
+  const { trigger: saveProject, loading: isSubmitting } = useApiMutation();
   const [errors, setErrors] = useState({});
 
   const { data: pagesData, isLoading: isLoadingPages } = useQuery({
@@ -52,7 +53,7 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
     page: "",
     project_sort: "",
     project_name: "",
-    project_type: "",
+    project_type: "General",
     project_description: "",
     project_image: null,
     project_image_alt: "",
@@ -79,30 +80,58 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
   };
 
   useEffect(() => {
-    if (!project) return;
-    setFormData({
-      page: project.page || "",
-      project_sort: project.project_sort ?? "",
-      project_name: project.project_name || project.project_title || "",
-      project_type: project.project_type || "",
-      project_description: project.project_description || "",
-      project_image: null,
-      project_image_alt: project.project_image_alt || "",
-      project_status: project.project_status || "Active",
-      project_industry: project.project_industry || "",
-      project_solution: project.project_solution || "",
-      project_features: project.project_features || "",
-      project_technology: project.project_technology || "",
-    });
+    if (project) {
+      setFormData({
+        page: project.page || "",
+        project_sort: project.project_sort ?? "",
+        project_name: project.project_name || project.project_title || "",
+        project_type: project.project_type || "General",
+        project_description: project.project_description || "",
+        project_image: null,
+        project_image_alt: project.project_image_alt || "",
+        project_status: project.project_status || "Active",
+        project_industry: project.project_industry || "",
+        project_solution: project.project_solution || "",
+        project_features: project.project_features || "",
+        project_technology: project.project_technology || "",
+      });
+    } else {
+      setFormData({
+        page: "",
+        project_sort: "",
+        project_name: "",
+        project_type: "General",
+        project_description: "",
+        project_image: null,
+        project_image_alt: "",
+        project_status: "Active",
+        project_industry: "",
+        project_solution: "",
+        project_features: "",
+        project_technology: "",
+      });
+    }
   }, [project]);
 
-  const handleUpdate = async () => {
+  const handleSubmit = async () => {
     if (!formData.page) {
       toast.error("Please select a page");
+      setErrors((prev) => ({ ...prev, page: "Page is required" }));
       return;
     }
     if (!formData.project_name.trim()) {
       toast.error("Please enter project name");
+      setErrors((prev) => ({ ...prev, project_name: "Project name is required" }));
+      return;
+    }
+    if (!formData.project_type?.trim()) {
+      toast.error("Please enter project type");
+      setErrors((prev) => ({ ...prev, project_type: "Project type is required" }));
+      return;
+    }
+    if (!isEditMode && !formData.project_image) {
+      toast.error("Please select a project image");
+      setErrors((prev) => ({ ...prev, project_image: "Project image is required" }));
       return;
     }
 
@@ -111,7 +140,7 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
     payload.append("project_sort", formData.project_sort || "0");
     payload.append("project_name", formData.project_name);
     payload.append("project_title", formData.project_name);
-    payload.append("project_type", formData.project_type || "");
+    payload.append("project_type", formData.project_type?.trim() || "General");
     payload.append("project_description", formData.project_description || "");
     payload.append("project_image_alt", formData.project_image_alt || "");
     payload.append("project_status", formData.project_status || "Active");
@@ -119,15 +148,18 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
     payload.append("project_solution", formData.project_solution || "");
     payload.append("project_features", formData.project_features || "");
     payload.append("project_technology", formData.project_technology || "");
-    payload.append("_method", "PUT");
+
+    if (isEditMode) {
+      payload.append("_method", "PUT");
+    }
 
     if (formData.project_image instanceof File) {
       payload.append("project_image", formData.project_image);
     }
 
     try {
-      const res = await updateProject({
-        url: PROJECT_API.updateById(project.id),
+      const res = await saveProject({
+        url: isEditMode ? PROJECT_API.updateById(project.id) : PROJECT_API.create,
         method: "POST",
         data: payload,
         headers: {
@@ -136,15 +168,15 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
       });
 
       if (res?.code === 200 || res?.code === 201 || res?.status === "success") {
-        toast.success(res?.message || "Project updated successfully");
+        toast.success(res?.message || (isEditMode ? "Project updated successfully" : "Project created successfully"));
         queryClient.invalidateQueries({ queryKey: ["project"] });
         if (refetch) refetch();
         setOpenEdit(false);
       } else {
-        toast.error(res?.message || "Failed to update project");
+        toast.error(res?.message || (isEditMode ? "Failed to update project" : "Failed to create project"));
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to update project");
+      toast.error(error?.response?.data?.message || (isEditMode ? "Failed to update project" : "Failed to create project"));
     }
   };
 
@@ -153,9 +185,10 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:rounded-xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
-            Edit Project
+            {isEditMode ? "Edit Project" : "Add New Project"}
           </DialogTitle>
         </DialogHeader>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-2">
           <div className="space-y-2">
@@ -207,14 +240,19 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Project Type</Label>
+            <Label className="text-sm font-medium">Project Type <Redstar /></Label>
             <Input
               name="project_type"
               value={formData.project_type}
               onChange={handleInputChange}
               placeholder="Enter project type"
+              className={errors.project_type ? "border-red-500" : ""}
             />
+            {errors.project_type && (
+              <p className="text-sm text-red-500">{errors.project_type}</p>
+            )}
           </div>
+
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">Industry</Label>
@@ -326,19 +364,22 @@ const ProjectModal = ({ setOpenEdit, project, refetch }) => {
           </Button>
 
           <Button
-            onClick={handleUpdate}
+            onClick={handleSubmit}
             disabled={isSubmitting}
             type="button"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Updating...
+                {isEditMode ? "Updating..." : "Creating..."}
               </>
-            ) : (
+            ) : isEditMode ? (
               "Update Project"
+            ) : (
+              "Create Project"
             )}
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>

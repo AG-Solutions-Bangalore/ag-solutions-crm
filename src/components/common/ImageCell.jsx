@@ -1,33 +1,53 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
+import { Image as ImageIcon } from "lucide-react";
 
 const ImageCell = ({
   src,
   fallback,
   alt = "image",
-  width = 40,
-  height = 20,
+  width = 60,
+  height = 40,
   className = "",
 }) => {
-  const cacheBustedSrc = useMemo(() => {
-    if (!src) return fallback;
-    return `${src}${src.includes("?") ? "&" : "?"}t=${Date.now()}`;
-  }, [src, fallback]);
-
-  const [imgSrc, setImgSrc] = useState(cacheBustedSrc);
+  const [hasError, setHasError] = useState(false);
+  const [triedFallback, setTriedFallback] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(src);
 
   useEffect(() => {
-    setImgSrc(cacheBustedSrc);
-  }, [cacheBustedSrc]);
+    setCurrentSrc(src);
+    setHasError(!src);
+    setTriedFallback(false);
+  }, [src]);
+
+  const handleError = () => {
+    if (!triedFallback && fallback && fallback !== currentSrc) {
+      setTriedFallback(true);
+      setCurrentSrc(fallback);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  if (hasError || !currentSrc) {
+    return (
+      <div
+        style={{ width, height }}
+        className={`flex items-center justify-center rounded border border-border/50 bg-muted/40 text-muted-foreground/50 shrink-0 ${className}`}
+        title={alt}
+      >
+        <ImageIcon className="w-4 h-4" />
+      </div>
+    );
+  }
 
   return (
     <img
-      src={imgSrc}
+      src={currentSrc}
       alt={alt}
       loading="lazy"
-      width={width}
-      height={height}
-      onError={() => setImgSrc(fallback)}
-      className={`object-cover rounded border block ${className}`}
+      style={{ width, height }}
+      onError={handleError}
+      className={`object-cover rounded border border-border shrink-0 block ${className}`}
     />
   );
 };

@@ -86,12 +86,13 @@ export const CAMPAIGN_API = {
 export const CAMPAING_API = CAMPAIGN_API;
 
 export const GALLERYS_API = {
-  list: "/link-gallery",
-  create: "/link-gallery",
-  byId: (id) => `/link-gallery/${id}`,
-  deleteById: (id) => `/link-gallery/${id}`,
-  updateById: (id) => `/link-gallery/${id}?_method=PUT`,
+  list: "/gallery",
+  create: "/gallery",
+  byId: (id) => `/gallery/${id}`,
+  deleteById: (id) => `/gallery/${id}`,
+  updateById: (id) => `/gallery/${id}?_method=PUT`,
 };
+
 
 export const SPONSOR_API = {
   create: "/sponsor",
@@ -195,12 +196,13 @@ export const BLOG_API = {
   updateById: (id) => `/blog/${id}?_method=PUT`,
 };
 export const GALLERY_API = {
-  list: "/link-gallery",
-  create: "/link-gallery",
-  dropdown: "/link-gallerys",
-  byId: (id) => `/link-gallery/${id}`,
-  delete: (id) => `/link-gallery/${id}`,
-  updateById: (id) => `/link-gallery/${id}?_method=PUT`,
+  list: "/gallery",
+  create: "/gallery",
+  dropdown: "/gallerys",
+  byId: (id) => `/gallery/${id}`,
+  delete: (id) => `/gallery/${id}`,
+  deleteById: (id) => `/gallery/${id}`,
+  updateById: (id) => `/gallery/${id}?_method=PUT`,
 };
 export const PAGE_TWO_API = {
   dropdown: "/pageTwo",
@@ -224,9 +226,9 @@ export const COURSE_API = {
   courses: "/courses",
 };
 export const GALLERYAPI = {
-  gallery: "/link-gallery",
-  byId: (id) => `/link-gallery/${id}`,
-  updateById: (id) => `/link-gallery/${id}?_method=PUT`,
+  gallery: "/gallery",
+  byId: (id) => `/gallery/${id}`,
+  updateById: (id) => `/gallery/${id}?_method=PUT`,
 };
 export const YOUTUBEFOR_API = {
   list: "/youtubeFor",

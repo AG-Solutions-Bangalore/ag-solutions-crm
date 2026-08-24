@@ -22,16 +22,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Loader from "@/components/loader/loader";
+import FaqModal from "./FaqModal";
 
 const FaqList = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedFaqId, setSelectedFaqId] = useState(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isFetching, error } = useGetApiMutation({
+  const { data, isLoading, isFetching, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/faq`,
     queryKey: ["faq", pageIndex, pageSize],
     params: {
@@ -39,6 +41,7 @@ const FaqList = () => {
       per_page: pageSize,
     },
   });
+
 
   const { trigger: deleteTrigger } = useApiMutation();
 
@@ -118,7 +121,10 @@ const FaqList = () => {
             type="button"
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
             title="Edit FAQ"
-            onClick={() => navigate(`/faq-edit/${row.original.id}`)}
+            onClick={() => {
+              setSelectedFaqId(row.original.id);
+              setOpenModal(true);
+            }}
           >
             <Edit className="size-3.5" />
           </button>
@@ -187,11 +193,23 @@ const FaqList = () => {
           },
         }}
         addButton={{
-          to: "/create-faq",
+          onClick: () => {
+            setSelectedFaqId(null);
+            setOpenModal(true);
+          },
           label: "Add FAQ",
         }}
         searchPlaceholder="Search FAQs..."
       />
+
+      {openModal && (
+        <FaqModal
+          setOpenModal={setOpenModal}
+          faqId={selectedFaqId}
+          refetch={refetch}
+        />
+      )}
+
 
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
         <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">

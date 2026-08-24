@@ -147,7 +147,7 @@ function Dashboard() {
       title: "Add Project",
       description: "Showcase new portfolio project",
       icon: FolderPlus,
-      link: "/projects/create",
+      link: "/projects",
       iconColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
       badge: "Showcase",
       badgeVariant: "purple",
@@ -156,11 +156,12 @@ function Dashboard() {
       title: "Create Blog",
       description: "Publish latest company insights",
       icon: PenTool,
-      link: "/create-blog",
+      link: "/blog-list",
       iconColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
       badge: "Articles",
       badgeVariant: "warning",
     },
+
     {
       title: "Partner Sponsors",
       description: "Update sponsor logos & links",

@@ -84,7 +84,7 @@ const CreateProjects = () => {
             page: project.page || "",
             project_sort: project.project_sort ?? "",
             project_name: project.project_name || project.project_title || "",
-            project_type: project.project_type || "",
+            project_type: project.project_type || "General",
             project_description: project.project_description || "",
             project_image: null,
             project_image_alt: project.project_image_alt || "",
@@ -136,6 +136,10 @@ const CreateProjects = () => {
       newErrors.project_name = "Project name is required";
       isValid = false;
     }
+    if (!formData.project_type.trim()) {
+      newErrors.project_type = "Project type is required";
+      isValid = false;
+    }
     if (!isEditMode && !formData.project_image && !preview.project_image) {
       newErrors.project_image = "Project image is required";
       isValid = false;
@@ -144,6 +148,7 @@ const CreateProjects = () => {
     setErrors(newErrors);
     return isValid;
   };
+
 
   const handleImageChange = (fieldName, file) => {
     if (file) {
@@ -172,7 +177,7 @@ const CreateProjects = () => {
     formDataObj.append("project_sort", formData.project_sort || "0");
     formDataObj.append("project_name", formData.project_name);
     formDataObj.append("project_title", formData.project_name);
-    formDataObj.append("project_type", formData.project_type || "");
+    formDataObj.append("project_type", formData.project_type?.trim() || "General");
     formDataObj.append("project_description", formData.project_description || "");
     formDataObj.append("project_image_alt", formData.project_image_alt || "");
     formDataObj.append("project_industry", formData.project_industry || "");
@@ -313,7 +318,7 @@ const CreateProjects = () => {
             {/* Project Type */}
             <div className="space-y-2">
               <Label htmlFor="project_type" className="text-sm font-medium">
-                Project Type
+                Project Type <Redstar />
               </Label>
               <Input
                 id="project_type"
@@ -322,8 +327,13 @@ const CreateProjects = () => {
                 placeholder="Enter project type"
                 value={formData.project_type}
                 onChange={handleInputChange}
+                className={errors.project_type ? "border-red-500" : ""}
               />
+              {errors.project_type && (
+                <p className="text-sm text-red-500">{errors.project_type}</p>
+              )}
             </div>
+
 
             {/* Project Sort */}
             <div className="space-y-2">

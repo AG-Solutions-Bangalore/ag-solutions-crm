@@ -1,7 +1,7 @@
 import DataTable from "@/components/common/data-table";
 import BASE_URL from "@/config/base-url";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
-import { Trash2 } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApiMutation } from "@/hooks/useApiMutation";
@@ -9,8 +9,9 @@ import { toast } from "sonner";
 import { getImageBaseUrl, getNoImageUrl } from "@/utils/imageUtils";
 import { GALLERY_API } from "@/constants/apiConstants";
 import ImageCell from "@/components/common/ImageCell";
+import ToggleStatus from "@/components/toogle/status-toogle";
 import { motion } from "framer-motion";
-import CreateGalleryModal from "./CreateGalleryModal";
+import GalleryModal from "./GalleryModal";
 
 import {
   AlertDialog,
@@ -28,10 +29,11 @@ const GalleryList = () => {
   const [pageIndex, setPageIndex] = useState(0);
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
-  const [openCreate, setOpenCreate] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedGallery, setSelectedGallery] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isFetching, error } = useGetApiMutation({
+  const { data, isLoading, isFetching, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/gallery`,
     queryKey: ["gallery", pageIndex],
     params: {
@@ -80,24 +82,36 @@ const GalleryList = () => {
         </span>
       ),
     },
-
     {
       header: "Image",
       accessorKey: "gallery_image",
       cell: ({ row }) => {
+        const item = row.original;
         const fileName =
-          row.original.gallery_image ||
-          row.original.link_gallery_image ||
-          row.original.image;
-        const src = fileName ? `${galleryBaseUrl}${fileName}` : noImageUrl;
+          item.gallery_image ||
+          item.link_gallery_image ||
+          item.image ||
+          item.gallery_photo ||
+          item.photo;
+
+        const baseUrl =
+          item.gallery_url ||
+          galleryBaseUrl ||
+          "https://ag-solutions.in/webapi/public/assets/images/gallerys_images/";
+
+        const src = fileName
+          ? fileName.startsWith("http")
+            ? fileName
+            : `${baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`}${fileName}`
+          : noImageUrl;
 
         return (
           <ImageCell
             src={src}
             fallback={noImageUrl}
-            alt={row.original.gallery_name || row.original.gallery_title || "Gallery image"}
-            width={70}
-            height={45}
+            alt={item.gallery_name || item.gallery_image || `Gallery #${item.id}`}
+            width={75}
+            height={50}
           />
         );
       },
@@ -108,15 +122,52 @@ const GalleryList = () => {
       accessorKey: "gallery_name",
       cell: ({ row }) => (
         <span className="font-semibold text-foreground text-xs">
-          {row.original.gallery_name || row.original.gallery_title || `Image #${row.original.id}`}
+          {row.original.gallery_name ||
+            row.original.link_gallery_name ||
+            row.original.gallery_title ||
+            row.original.title ||
+            row.original.gallery_image ||
+            `Image #${row.original.id}`}
         </span>
+      ),
+    },
+
+    {
+      header: "Status",
+      accessorKey: "gallery_status",
+      cell: ({ row }) => (
+        <ToggleStatus
+          initialStatus={
+            row.original.gallery_status ||
+            row.original.link_gallery_status ||
+            row.original.status ||
+            "Active"
+          }
+          apiUrl={`${BASE_URL}/gallerys/${row.original.id}/status`}
+          payloadKey="gallery_status"
+          method="patch"
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["gallery"] });
+          }}
+        />
       ),
     },
     {
       header: "Actions",
       accessorKey: "actions",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+            title="Edit Image"
+            onClick={() => {
+              setSelectedGallery(row.original);
+              setOpenModal(true);
+            }}
+          >
+            <Edit className="size-3.5" />
+          </button>
           <button
             type="button"
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
@@ -130,6 +181,7 @@ const GalleryList = () => {
           </button>
         </div>
       ),
+      enableSorting: false,
     },
   ];
 
@@ -178,14 +230,23 @@ const GalleryList = () => {
           onPageChange: (newPage) => setPageIndex(newPage),
         }}
         addButton={{
-          onClick: () => setOpenCreate(true),
+          onClick: () => {
+            setSelectedGallery(null);
+            setOpenModal(true);
+          },
           label: "Add Image",
         }}
         searchPlaceholder="Search gallery..."
       />
 
-
-      {openCreate && <CreateGalleryModal setOpenModal={setOpenCreate} />}
+      {openModal && (
+        <GalleryModal
+          setOpenModal={setOpenModal}
+          galleryItem={selectedGallery}
+          galleryBaseUrl={galleryBaseUrl}
+          refetch={refetch}
+        />
+      )}
 
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
         <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
@@ -219,4 +280,3 @@ const GalleryList = () => {
 };
 
 export default GalleryList;
-
