@@ -78,11 +78,13 @@ export const GALLERYS_API={
 
 
 }
-export const SPONSAR_API={
-  create:"/sponsor",
+export const SPONSOR_API = {
+  create: "/sponsor",
   updateById: (id) => `/sponsor/${id}`,
-
-}
+  deleteById: (id) => `/sponsor/${id}`,
+  list: "/sponsor",
+};
+export const SPONSAR_API = SPONSOR_API;
 export const BLOG_LIST={
         updateStatus: (id) => `/blogs/${id}/status`,
         create:"/blog",

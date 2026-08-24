@@ -1,15 +1,29 @@
-import React, { useState, useEffect } from "react";
 import DataTable from "@/components/common/data-table";
-import Loader from "@/components/loader/loader";
-import StatusDropdown from "@/components/toogle/Enquiry-toggle";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import BASE_URL from "@/config/base-url";
 import { PROJECT_API } from "@/constants/apiConstants";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
-import { Trash2, Edit } from "lucide-react";
-import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { ArrowUpDown, Edit, MoreVertical, Trash2 } from "lucide-react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,151 +34,146 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import ImageCell from "@/components/common/ImageCell";
+import Loader from "@/components/loader/loader";
 import ToggleStatus from "@/components/toogle/status-toogle";
-import ProjectModal from "./projectModal";
-
-// --- Local Editable Sort Input using your logic ---
-const EditableSortInput = ({ initialValue, id, queryClient }) => {
-  const [value, setValue] = useState(initialValue);
-  const { trigger: PROJECT_SORT_UPDATE } = useApiMutation();
-
-  const handleBlur = async () => {
-    if (Number(value) === Number(initialValue)) {
-      return;
-    }
-    try {
-      await PROJECT_SORT_UPDATE({
-        url: PROJECT_API.updateSort(id),
-        method: "PATCH",
-        data: {
-          project_sort: value,
-        },
-      });
-      toast.success("Sort updated");
-    } catch (error) {
-      toast.error("Failed to update sort");
-    }
-  };
-
-  return (
-    <input
-      type="number"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={handleBlur}
-      onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
-      className="w-16 h-8 border rounded border-gray-300 px-1 text-center text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-    />
-  );
-};
-// ------------------------------------------------
 
 const Projects = () => {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [openEdit, setOpenEdit] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [openDelete, setOpenDelete] = useState(false);
   const [selectedPage, setSelectedPage] = useState("all");
+  const [sortOrders, setSortOrders] = useState({});
+  const [loadingId, setLoadingId] = useState(null);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const { data, isLoading, error, refetch } = useGetApiMutation({
+  const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/project`,
     queryKey: ["project"],
   });
-  const imageBaseUrl =
-    data?.image_url?.find((item) => item.image_for === "Projects")?.image_url ||
-    "";
 
-  const noImageUrl =
-    data?.image_url?.find((item) => item.image_for === "No Image")?.image_url ||
-    "";
-
-  const { trigger: deleteProject } = useApiMutation();
-
-  const pages = [
-    "all",
-    ...new Set((data?.data || []).map((item) => item.page)),
-  ];
+  const { trigger: deleteTrigger } = useApiMutation();
+  const { trigger: updateSortTrigger } = useApiMutation();
 
   const handleDelete = async (id) => {
-    console.log(id);
     try {
-      const response = await deleteProject({
+      const res = await deleteTrigger({
         url: PROJECT_API.deleteById(id),
-        method: "DELETE",
+        method: "delete",
       });
-
-      queryClient.setQueryData(["project", null], (old) => {
-        if (!old?.data) return old;
-
-        return {
-          ...old,
-          data: old.data.filter((item) => item.id !== id),
-        };
-      });
-
-      toast.success(response?.message || "Project deleted successfully");
+      if (res?.code === 200 || res?.code === 201) {
+        queryClient.invalidateQueries({ queryKey: ["project"] });
+        toast.success(res?.message || "Project deleted successfully");
+      } else {
+        toast.error(res?.message || "Failed to delete project");
+      }
     } catch (error) {
-      toast.error("Failed to delete project");
+      toast.error("Something went wrong while deleting");
     }
   };
 
-  const filteredProjects =
+  const handleSortChange = (id, value) => {
+    setSortOrders((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
+  const handleSortUpdate = async (id) => {
+    const sortValue = sortOrders[id];
+    if (sortValue === undefined || sortValue === "") {
+      toast.error("Please enter a sort order");
+      return;
+    }
+
+    try {
+      setLoadingId(id);
+      const res = await updateSortTrigger({
+        url: `${BASE_URL}/project/${id}`,
+        method: "put",
+        data: {
+          project_sort: Number(sortValue),
+        },
+      });
+
+      if (res?.code === 200 || res?.code === 201) {
+        toast.success("Sort order updated successfully");
+        queryClient.invalidateQueries({ queryKey: ["project"] });
+      } else {
+        toast.error(res?.message || "Failed to update sort order");
+      }
+    } catch (error) {
+      toast.error("Something went wrong while updating sort order");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const allProjects = data?.data || [];
+  const uniquePages = [
+    ...new Set(allProjects.map((item) => item.page).filter(Boolean)),
+  ];
+
+  const filteredData =
     selectedPage === "all"
-      ? data?.data || []
-      : (data?.data || []).filter((item) => item.page === selectedPage);
+      ? allProjects
+      : allProjects.filter((item) => item.page === selectedPage);
 
   const columns = [
     {
       header: "SL No",
       accessorKey: "slno",
-      cell: ({ row }) => <span>{row.index + 1}</span>,
-    },
-    {
-      header: "Page",
-      accessorKey: "page",
-    },
-    {
-      header: "Project Name",
-      accessorKey: "project_name",
       cell: ({ row }) => (
-        <span className="font-medium">{row.original.project_name}</span>
-      ),
-    },
-
-    {
-      header: "Project Type",
-      accessorKey: "project_type",
-      cell: ({ row }) => (
-        <span className="text-gray-600">
-          {row.original.project_type || "-"}
+        <span className="text-xs font-semibold text-muted-foreground">
+          {row.index + 1}
         </span>
       ),
     },
     {
-      header: "Project Sort",
-      accessorKey: "project_sort",
+      header: "Project Title",
+      accessorKey: "project_title",
       cell: ({ row }) => (
-        <EditableSortInput
-          initialValue={row.original.project_sort}
-          id={row.original.id}
-          queryClient={queryClient}
-        />
+        <span className="font-semibold text-foreground text-xs">
+          {row.original.project_title}
+        </span>
       ),
     },
     {
-      header: "Project Image",
-      accessorKey: "project_image",
+      header: "Page Type",
+      accessorKey: "page",
+      cell: ({ row }) => (
+        <span className="text-xs font-medium text-foreground bg-muted/60 px-2 py-0.5 rounded-md">
+          {row.original.page || "-"}
+        </span>
+      ),
+    },
+    {
+      header: "Sort Order",
+      accessorKey: "project_sort",
       cell: ({ row }) => {
-        const fileName = row.original.project_image;
-        const src = fileName ? `${imageBaseUrl}${fileName}` : `${noImageUrl}`;
+        const id = row.original.id;
+        const value =
+          sortOrders[id] !== undefined
+            ? sortOrders[id]
+            : row.original.project_sort ?? "";
+
         return (
-          <ImageCell
-            src={src}
-            fallback={noImageUrl}
-            alt={row.original.project_name}
-          />
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number"
+              value={value}
+              onChange={(e) => handleSortChange(id, e.target.value)}
+              className="w-16 h-8 px-2 text-xs border border-border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring text-foreground text-center"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={loadingId === id}
+              onClick={() => handleSortUpdate(id)}
+              className="h-8 px-2 text-xs rounded-md border-border hover:bg-accent"
+            >
+              {loadingId === id ? "..." : <ArrowUpDown className="size-3" />}
+            </Button>
+          </div>
         );
       },
     },
@@ -172,117 +181,126 @@ const Projects = () => {
       header: "Status",
       accessorKey: "project_status",
       cell: ({ row }) => (
-        <span
-          className={`w-fit px-3 rounded-full text-xs font-medium flex items-center justify-center ${
-            row.original.project_status === "Active"
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
-          }`}
-        >
-          <ToggleStatus
-            initialStatus={row.original.project_status}
-            apiUrl={PROJECT_API.updateStatus(row.original.id)}
-            payloadKey="project_status"
-            method="patch"
-            onSuccess={() => {
-              // Update the cache locally instead of calling refetch()
-              queryClient.setQueryData(["project", null], (old) => {
-                if (!old?.data) return old;
-                // Determine the new toggled status
-                const newStatus =
-                  row.original.project_status === "Active"
-                    ? "Inactive"
-                    : "Active";
-                return {
-                  ...old,
-                  data: old.data.map((item) =>
-                    item.id === row.original.id
-                      ? { ...item, project_status: newStatus }
-                      : item,
-                  ),
-                };
-              });
-            }}
-          />
-        </span>
+        <ToggleStatus
+          initialStatus={row.original.project_status}
+          apiUrl={PROJECT_API.updateStatus(row.original.id)}
+          payloadKey="project_status"
+          method="patch"
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["project"] });
+          }}
+        />
       ),
     },
     {
       header: "Actions",
       accessorKey: "actions",
       cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <Edit
-            className="h-4 w-4 hover:text-blue-600 cursor-pointer"
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+            title="Edit Project"
+            onClick={() => navigate(`/projects/edit/${row.original.id}`)}
+          >
+            <Edit className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            title="Delete Project"
             onClick={() => {
-              setSelectedProject(row.original);
-              setOpenEdit(true);
+              setDeleteId(row.original.id);
+              setOpenDelete(true);
             }}
-          />
-
-          <Trash2
-            className="h-4 w-4 hover:text-red-600 cursor-pointer"
-            onClick={() => setDeleteId(row.original.id)} // Open dialog instead of deleting directly
-          />
+          >
+            <Trash2 className="size-3.5" />
+          </button>
         </div>
       ),
-      enableSorting: false,
     },
   ];
-  if (isLoading)
+
+  if (isLoading) {
     return (
-      <>
+      <div className="flex h-64 items-center justify-center">
         <Loader />
-      </>
+      </div>
     );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center text-destructive">
+        <p className="font-semibold">Error loading projects</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, filter: "blur(8px)", y: 10 }}
+      animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-4"
+    >
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
+          Projects
+        </h1>
+        <p className="text-xs text-muted-foreground">
+          Organize showcase projects, page categories, and layout sequence.
+        </p>
+      </div>
+
       <DataTable
         columns={columns}
-        data={filteredProjects}
+        data={filteredData}
         pageSize={10}
+        isLoading={isLoading}
+        isFetching={isFetching}
         filterProjects={
-          <div className="mb-2 ml-20 flex items-center gap-1">
-            <label className="text-[15px] font-medium">Filter:</label>
-
-            <select
-              value={selectedPage}
-              onChange={(e) => setSelectedPage(e.target.value)}
-              className="h-10 w-34 rounded border px-2 text-xs"
-            >
-              {pages.map((page) => (
-                <option key={page} value={page}>
-                  {page === "all" ? "All Pages" : page}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-2">
+            <Select value={selectedPage} onValueChange={setSelectedPage}>
+              <SelectTrigger className="h-9 w-44 text-xs rounded-lg border-border bg-background shadow-2xs">
+                <SelectValue placeholder="Filter by page" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl shadow-lg border border-border bg-popover/95 backdrop-blur-md">
+                <SelectItem value="all" className="text-xs">All Pages</SelectItem>
+                {uniquePages.map((page) => (
+                  <SelectItem key={page} value={page} className="text-xs">
+                    {page}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         }
         addButton={{
-          to: "/create-project",
+          to: "/projects/create",
           label: "Add Project",
         }}
-        searchPlaceholder="Search Projects..."
+        searchPlaceholder="Search projects..."
       />
-      {openEdit && (
-        <ProjectModal setOpenEdit={setOpenEdit} project={selectedProject} />
-      )}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
+
+      <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
+        <AlertDialogContent className="rounded-xl border border-border bg-card/95 backdrop-blur-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              project.
+            <AlertDialogTitle className="text-foreground">Delete Project</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to delete this project? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-lg" onClick={() => setDeleteId(null)}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg"
               onClick={() => {
                 handleDelete(deleteId);
+                setOpenDelete(false);
                 setDeleteId(null);
               }}
             >
@@ -291,7 +309,7 @@ const Projects = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </motion.div>
   );
 };
 

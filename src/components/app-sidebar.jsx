@@ -8,24 +8,20 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { Newspaper } from "lucide-react";
 
 import {
-  GalleryVerticalEnd,
-  Bell,
-  Settings2,
   LayoutDashboard,
-  Boxes,
+  Inbox,
+  Briefcase,
+  Megaphone,
+  Newspaper,
+  Layers,
   Images,
-  BadgeDollarSign,
-  Settings,
-  MapPinHouse,
-  User,
-  LandPlot,
-  BarChart3,
-  Cog,
-  Gauge,
+  Award,
+  BookOpen,
   HelpCircle,
+  Settings,
+  Building2,
 } from "lucide-react";
 
 import { useMemo, useState } from "react";
@@ -38,53 +34,51 @@ const NAVIGATION_CONFIG = {
       url: "/dashboard",
       icon: LayoutDashboard,
     },
-
     ENQUIRIES: {
       title: "Enquiries",
       url: "/enquiries",
-      icon: BarChart3,
+      icon: Inbox,
     },
     PROJECTS: {
       title: "Projects",
       url: "/projects",
-      icon: MapPinHouse,
+      icon: Briefcase,
     },
     CAMPAIGN: {
       title: "Campaign",
       url: "/campaign-visit",
-      icon: MapPinHouse,
+      icon: Megaphone,
     },
     NEWSLEETER: {
-      title: "NewsLetter",
+      title: "Newsletter",
       url: "/newsLetter",
       icon: Newspaper,
     },
     CATEGORY: {
-      title: "Category",
-      url: "/category-list",
-      icon: Cog,
+      title: "Categories",
+      url: "/Category-list",
+      icon: Layers,
     },
     GALLERY: {
-      title: "Gallery-List",
+      title: "Gallery",
       url: "/gallery-list",
       icon: Images,
     },
     SPONSAR: {
-      title: "Sponsar-list",
+      title: "Sponsors",
       url: "/Sponsar-list",
-      icon: BadgeDollarSign,
+      icon: Award,
     },
     BLOG: {
-      title: "Blog List",
+      title: "Blogs",
       url: "/blog-list",
-      icon: BadgeDollarSign,
+      icon: BookOpen,
     },
     FAQ: {
       title: "FAQ",
       url: "/faq-list",
       icon: HelpCircle,
     },
-
     SETTINGS: {
       title: "Settings",
       url: "/settings",
@@ -96,8 +90,6 @@ const NAVIGATION_CONFIG = {
 const USER_ROLE_PERMISSIONS = {
   1: {
     navMain: ["DASHBOARD", "SETTINGS"],
-
-    navMainReport: ["DASHBOARD", "SETTINGS"],
   },
   2: {
     navMain: [
@@ -111,11 +103,8 @@ const USER_ROLE_PERMISSIONS = {
       "GALLERY",
       "BLOG",
       "FAQ",
-
       "SETTINGS",
     ],
-
-    navMainReport: ["DASHBOARD", "SETTINGS"],
   },
   3: {
     navMain: [
@@ -129,11 +118,8 @@ const USER_ROLE_PERMISSIONS = {
       "GALLERY",
       "BLOG",
       "FAQ",
-
       "SETTINGS",
     ],
-
-    navMainReport: ["DASHBOARD", "SETTINGS"],
   },
   4: {
     navMain: [
@@ -147,54 +133,26 @@ const USER_ROLE_PERMISSIONS = {
       "GALLERY",
       "BLOG",
       "FAQ",
-
       "SETTINGS",
     ],
-
-    navMainReport: ["DASHBOARD", "SETTINGS"],
   },
-};
-
-const LIMITED_MASTER_SETTINGS = {
-  title: "Master Settings",
-  url: "#",
-  isActive: false,
-  icon: Settings2,
-  items: [
-    {
-      title: "Chapters",
-      url: "/master/chapter",
-    },
-  ],
 };
 
 const useNavigationData = (userType) => {
   return useMemo(() => {
     const permissions =
-      USER_ROLE_PERMISSIONS[userType] || USER_ROLE_PERMISSIONS[1];
+      USER_ROLE_PERMISSIONS[userType] || USER_ROLE_PERMISSIONS[2] || USER_ROLE_PERMISSIONS[1];
 
-    const buildNavItems = (permissionKeys, config, customItems = {}) => {
-      return permissionKeys
-        .map((key) => {
-          if (key === "MASTER_SETTINGS_LIMITED") {
-            return LIMITED_MASTER_SETTINGS;
-          }
-          return config[key];
-        })
+    const buildNavItems = (permissionKeys, config) => {
+      return (permissionKeys || [])
+        .map((key) => config[key])
         .filter(Boolean);
     };
 
     const navMain = buildNavItems(
-      permissions.navMain,
-      // { ...NAVIGATION_CONFIG.COMMON, ...NAVIGATION_CONFIG.MODULES },
+      permissions?.navMain,
       { ...NAVIGATION_CONFIG.COMMON },
-      // { MASTER_SETTINGS_LIMITED: LIMITED_MASTER_SETTINGS }
     );
-
-    // const navMainReport = buildNavItems(
-    //   permissions.navMainReport,
-    //   NAVIGATION_CONFIG.REPORTS
-    // );
 
     return { navMain };
   }, [userType]);
@@ -202,43 +160,74 @@ const useNavigationData = (userType) => {
 
 export function AppSidebar({ ...props }) {
   const [openItem, setOpenItem] = useState(null);
+  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   const TEAMS_CONFIG = useMemo(
     () => [
       {
         name: "AG Solutions",
-        logo: GalleryVerticalEnd,
-        plan: "",
+        logo: Building2,
+        plan: "Enterprise CRM",
       },
     ],
     [],
   );
 
   const user = useSelector((state) => state.auth.user);
-  const { navMain, navMainReport } = useNavigationData(user?.user_type);
+  const { navMain } = useNavigationData(user?.user_type);
   const initialData = {
     user: {
-      name: user?.name || "User",
-      email: user?.email || "user@example.com",
-      avatar: "/avatars/shadcn.jpg",
+      name: user?.name || "Admin",
+      email: user?.email || "admin@agsolutions.com",
+      avatar: user?.avatar || "",
     },
     teams: TEAMS_CONFIG,
     navMain,
-    navMainReport,
   };
+
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border/80" {...props}>
+      <SidebarHeader className="p-3">
         <TeamSwitcher teams={initialData.teams} />
       </SidebarHeader>
-      <SidebarContent className="sidebar-content">
-        <NavMain
-          items={initialData.navMain}
-          openItem={openItem}
-          setOpenItem={setOpenItem}
+
+      <SidebarContent
+        className="sidebar-content px-2 py-1 relative overflow-hidden"
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => {
+          setIsHovered(false);
+          setMousePos({ x: -1000, y: -1000 });
+        }}
+      >
+        {/* 🔹 Smooth Cursor Follower Spotlight */}
+        <div
+          className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-200"
+          style={{
+            opacity: isHovered ? 1 : 0,
+            background: `radial-gradient(140px circle at ${mousePos.x}px ${mousePos.y}px, var(--sidebar-accent), transparent 75%)`,
+          }}
         />
+
+        <div className="relative z-10">
+          <NavMain
+            items={initialData.navMain}
+            openItem={openItem}
+            setOpenItem={setOpenItem}
+          />
+        </div>
       </SidebarContent>
-      <SidebarFooter>
+
+      <SidebarFooter className="p-3 border-t border-sidebar-border/40">
         <NavUser user={initialData.user} />
       </SidebarFooter>
       <SidebarRail />

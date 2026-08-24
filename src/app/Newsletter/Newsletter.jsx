@@ -1,155 +1,101 @@
-import React, { useState } from "react";
 import DataTable from "@/components/common/data-table";
-import Loader from "@/components/loader/loader";
 import BASE_URL from "@/config/base-url";
-import { NEWSLETTER_API } from "@/constants/apiConstants";
-import { useApiMutation } from "@/hooks/useApiMutation";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
-import { Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
-
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Mail, Calendar } from "lucide-react";
+import React from "react";
+import Loader from "@/components/loader/loader";
+import { motion } from "framer-motion";
 
 const Newsletter = () => {
-  const [deleteId, setDeleteId] = useState(null);
-  const [open, setOpen] = useState(false);
-
-  const queryClient = useQueryClient();
-
-  const { data, isLoading, error } = useGetApiMutation({
+  const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/newsletter`,
     queryKey: ["newsletter"],
   });
 
-  const { trigger: deleteTrigger } = useApiMutation();
-
-  const handleDelete = async (id) => {
-    try {
-      const res = await deleteTrigger({
-        url: NEWSLETTER_API.deleteById(id),
-        method: "delete",
-      });
-      if (res?.code === 200 || res?.code === 201) {
-        // Updated to target the correct "newsletter" queryKey
-        queryClient.setQueryData(["newsletter", null], (old) => {
-          if (!old?.data?.data) return old;
-
-          return {
-            ...old,
-            data: {
-              ...old.data,
-              data: old.data.data.filter((item) => item.id !== id),
-            },
-          };
-        });
-        toast.success(res?.message || "Newsletter deleted successfully");
-      } else {
-        toast.error(res?.message || "Failed to delete newsletter");
-      }
-    } catch (error) {
-      toast.error("Something went wrong");
-    }
-  };
-
-  if (isLoading)
-    return (
-      <>
-        <Loader />
-      </>
-    );
-
-  if (error) return <div>Error loading newsletters</div>;
-
-  // Updated columns to match newsletter API response
   const columns = [
     {
       header: "SL No",
       accessorKey: "slno",
-      cell: ({ row }) => <span>{row.index + 1}</span>,
-    },
-    {
-      header: "Email",
-      accessorKey: "newsletter_email",
       cell: ({ row }) => (
-        <span className="font-medium">{row.original.newsletter_email}</span>
-      ),
-    },
-    {
-      header: "Subscribed Date",
-      accessorKey: "newsletter_created",
-      cell: ({ row }) => (
-        <span className="text-gray-600">
-          {new Date(row.original.newsletter_created)
-            .toLocaleDateString("en-GB")
-            .replace(/\//g, "-")}
+        <span className="text-xs font-semibold text-muted-foreground">
+          {row.index + 1}
         </span>
       ),
     },
     {
-      header: "Actions",
+      header: "Subscriber Email",
+      accessorKey: "newsletter_email",
       cell: ({ row }) => (
-        <button
-          className="text-red-500 hover:text-red-700"
-          onClick={() => {
-            setDeleteId(row.original.id);
-            setOpen(true);
-          }}
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+            <Mail className="size-3.5" />
+          </div>
+          <span className="font-semibold text-foreground text-xs">
+            {row.original.newsletter_email}
+          </span>
+        </div>
       ),
+    },
+    {
+      header: "Subscription Date",
+      accessorKey: "created_at",
+      cell: ({ row }) => {
+        const date = new Date(row.original.created_at);
+        return (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="size-3.5 text-muted-foreground" />
+            <span>
+              {`${String(date.getDate()).padStart(2, "0")}-${String(
+                date.getMonth() + 1
+              ).padStart(2, "0")}-${date.getFullYear()}`}
+            </span>
+          </div>
+        );
+      },
     },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center text-destructive">
+        <p className="font-semibold">Error loading newsletter subscribers</p>
+      </div>
+    );
+  }
+
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, filter: "blur(8px)", y: 10 }}
+      animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-4"
+    >
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
+          Newsletter Subscribers
+        </h1>
+        <p className="text-xs text-muted-foreground">
+          View all subscribers signed up for marketing updates and newsletters.
+        </p>
+      </div>
+
       <DataTable
         columns={columns}
-        data={data?.data?.data || []}
+        data={data?.data || []}
         pageSize={10}
-        searchPlaceholder="Search Newsletters..."
+        isLoading={isLoading}
+        isFetching={isFetching}
+        searchPlaceholder="Search subscribers..."
       />
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Do you want to delete this newsletter email?
-            </AlertDialogTitle>
-
-            <AlertDialogDescription>
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteId(null)}>
-              No
-            </AlertDialogCancel>
-
-            <AlertDialogAction
-              className="bg-red-600 text-white hover:bg-red-700"
-              onClick={() => {
-                handleDelete(deleteId);
-                setOpen(false);
-                setDeleteId(null);
-              }}
-            >
-              Yes
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+    </motion.div>
   );
 };
 
