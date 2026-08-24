@@ -54,7 +54,7 @@ const CreateCategoryModal = ({ setOpenCreate }) => {
 
       if (res?.code === 201 || res?.code === 200) {
         toast.success(res?.message || "Category created successfully");
-        queryClient.invalidateQueries(["category", null]);
+        queryClient.invalidateQueries({ queryKey: ["category"] });
         setOpenCreate(false);
       } else {
         toast.error(res?.message || "Failed to create Category");

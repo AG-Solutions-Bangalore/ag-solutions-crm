@@ -95,7 +95,8 @@ export default function AuthUI() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="relative h-fit max-h-[90dvh] z-10 max-w-6xl w-full"
       >
-        <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-5 gap-0 rounded-3xl overflow-hidden backdrop-blur-xl bg-white/10 border border-white shadow-2xl">
+        <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-5 gap-0 rounded-3xl overflow-hidden bg-card border border-border shadow-2xl">
+
           {view === "login" ? (
             <LoginForm
               email={email}

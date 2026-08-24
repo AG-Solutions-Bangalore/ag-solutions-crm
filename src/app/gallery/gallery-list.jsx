@@ -1,7 +1,7 @@
 import DataTable from "@/components/common/data-table";
 import BASE_URL from "@/config/base-url";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
-import { Trash2 } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApiMutation } from "@/hooks/useApiMutation";
@@ -9,8 +9,9 @@ import { toast } from "sonner";
 import { getImageBaseUrl, getNoImageUrl } from "@/utils/imageUtils";
 import { GALLERY_API } from "@/constants/apiConstants";
 import ImageCell from "@/components/common/ImageCell";
-import { useNavigate } from "react-router-dom";
+import ToggleStatus from "@/components/toogle/status-toogle";
 import { motion } from "framer-motion";
+import GalleryModal from "./GalleryModal";
 
 import {
   AlertDialog,
@@ -27,10 +28,11 @@ import Loader from "@/components/loader/loader";
 const GalleryList = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
-  const navigate = useNavigate();
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedGallery, setSelectedGallery] = useState(null);
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isFetching, error } = useGetApiMutation({
+  const { data, isLoading, isFetching, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/gallery`,
     queryKey: ["gallery"],
   });
@@ -57,13 +59,19 @@ const GalleryList = () => {
   const galleryBaseUrl = getImageBaseUrl(data?.image_url, "Gallery");
   const noImageUrl = getNoImageUrl(data?.image_url);
 
+  const galleryList = Array.isArray(data?.data?.data)
+    ? data.data.data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+
   const columns = [
     {
       header: "SL No",
       accessorKey: "slno",
-      cell: ({ row }) => (
+      cell: ({ row, table }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {row.index + 1}
+          {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + row.index + 1}
         </span>
       ),
     },
@@ -71,16 +79,32 @@ const GalleryList = () => {
       header: "Image",
       accessorKey: "gallery_image",
       cell: ({ row }) => {
-        const fileName = row.original.gallery_image;
-        const src = fileName ? `${galleryBaseUrl}${fileName}` : noImageUrl;
+        const item = row.original;
+        const fileName =
+          item.gallery_image ||
+          item.link_gallery_image ||
+          item.image ||
+          item.gallery_photo ||
+          item.photo;
+
+        const baseUrl =
+          item.gallery_url ||
+          galleryBaseUrl ||
+          "https://ag-solutions.in/webapi/public/assets/images/gallerys_images/";
+
+        const src = fileName
+          ? fileName.startsWith("http")
+            ? fileName
+            : `${baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`}${fileName}`
+          : noImageUrl;
 
         return (
           <ImageCell
             src={src}
             fallback={noImageUrl}
-            alt={row.original.gallery_name}
-            width={70}
-            height={45}
+            alt={item.gallery_name || item.gallery_image || `Gallery #${item.id}`}
+            width={75}
+            height={50}
           />
         );
       },
@@ -91,15 +115,52 @@ const GalleryList = () => {
       accessorKey: "gallery_name",
       cell: ({ row }) => (
         <span className="font-semibold text-foreground text-xs">
-          {row.original.gallery_name}
+          {row.original.gallery_name ||
+            row.original.link_gallery_name ||
+            row.original.gallery_title ||
+            row.original.title ||
+            row.original.gallery_image ||
+            `Image #${row.original.id}`}
         </span>
+      ),
+    },
+
+    {
+      header: "Status",
+      accessorKey: "gallery_status",
+      cell: ({ row }) => (
+        <ToggleStatus
+          initialStatus={
+            row.original.gallery_status ||
+            row.original.link_gallery_status ||
+            row.original.status ||
+            "Active"
+          }
+          apiUrl={`${BASE_URL}/gallerys/${row.original.id}/status`}
+          payloadKey="gallery_status"
+          method="patch"
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["gallery"] });
+          }}
+        />
       ),
     },
     {
       header: "Actions",
       accessorKey: "actions",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+            title="Edit Image"
+            onClick={() => {
+              setSelectedGallery(row.original);
+              setOpenModal(true);
+            }}
+          >
+            <Edit className="size-3.5" />
+          </button>
           <button
             type="button"
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
@@ -113,16 +174,9 @@ const GalleryList = () => {
           </button>
         </div>
       ),
+      enableSorting: false,
     },
   ];
-
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -150,21 +204,34 @@ const GalleryList = () => {
 
       <DataTable
         columns={columns}
-        data={data?.data || []}
+        data={galleryList}
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
         addButton={{
-          to: "/gallery/create",
+          onClick: () => {
+            setSelectedGallery(null);
+            setOpenModal(true);
+          },
           label: "Add Image",
         }}
-        searchPlaceholder="Search gallery..."
+        searchPlaceholder="Search gallery by any field..."
       />
 
+      {openModal && (
+        <GalleryModal
+          setOpenModal={setOpenModal}
+          galleryItem={selectedGallery}
+          galleryBaseUrl={galleryBaseUrl}
+          refetch={refetch}
+        />
+      )}
+
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-        <AlertDialogContent className="rounded-xl border border-border bg-card/95 backdrop-blur-md">
+        <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Delete Image</AlertDialogTitle>
+
             <AlertDialogDescription className="text-muted-foreground">
               Are you sure you want to delete this image? This action cannot be undone.
             </AlertDialogDescription>

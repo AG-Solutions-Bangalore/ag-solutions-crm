@@ -449,10 +449,11 @@ const CreateBlog = () => {
             </div>
 
             {/* Banner Image Upload */}
-            <div className="space-y-4 md:col-span-2 border p-4 rounded-lg bg-gray-50/50">
-              <h3 className="font-medium text-base">
+            <div className="space-y-4 md:col-span-2 border border-border p-4 rounded-lg bg-card">
+              <h3 className="font-medium text-base text-foreground">
                 Blog Banner Image <Redstar />
               </h3>
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">

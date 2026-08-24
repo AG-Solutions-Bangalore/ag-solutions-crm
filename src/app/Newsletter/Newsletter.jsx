@@ -1,16 +1,76 @@
 import DataTable from "@/components/common/data-table";
+import { Badge } from "@/components/ui/badge";
 import BASE_URL from "@/config/base-url";
+
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
-import { Mail, Calendar } from "lucide-react";
-import React from "react";
+import { useApiMutation } from "@/hooks/useApiMutation";
+import { useQueryClient } from "@tanstack/react-query";
+import { Mail, Calendar, Trash2 } from "lucide-react";
+import React, { useState } from "react";
 import Loader from "@/components/loader/loader";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { NEWSLETTER_API } from "@/constants/apiConstants";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Newsletter = () => {
+  const [pageIndex, setPageIndex] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [deleteId, setDeleteId] = useState(null);
+  const [openDelete, setOpenDelete] = useState(false);
+  const queryClient = useQueryClient();
+
   const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/newsletter`,
-    queryKey: ["newsletter"],
+    queryKey: ["newsletter", pageIndex, searchTerm],
+    params: {
+      page: searchTerm ? undefined : pageIndex + 1,
+      search: searchTerm || undefined,
+    },
   });
+
+  const { trigger: deleteTrigger } = useApiMutation();
+
+  const handleDelete = async (id) => {
+    try {
+      const res = await deleteTrigger({
+        url: `${BASE_URL}/newsletter/${id}`,
+        method: "delete",
+      });
+      if (res?.code === 200 || res?.code === 201) {
+        queryClient.invalidateQueries({ queryKey: ["newsletter"] });
+        toast.success(res?.message || "Subscriber deleted successfully");
+      } else {
+        toast.error(res?.message || "Failed to delete subscriber");
+      }
+    } catch (error) {
+      toast.error("Something went wrong while deleting");
+    }
+  };
+
+  const subscriberList = Array.isArray(data?.data?.data)
+    ? data.data.data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+
+  const perPage = data?.data?.per_page || 10;
+  const totalRecords = searchTerm
+    ? subscriberList.length
+    : (data?.data?.total || subscriberList.length || 0);
+  const totalPages = searchTerm
+    ? (Math.ceil(totalRecords / perPage) || 1)
+    : (data?.data?.last_page || Math.ceil(totalRecords / perPage) || 1);
 
   const columns = [
     {
@@ -18,10 +78,11 @@ const Newsletter = () => {
       accessorKey: "slno",
       cell: ({ row }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {row.index + 1}
+          {pageIndex * perPage + row.index + 1}
         </span>
       ),
     },
+
     {
       header: "Subscriber Email",
       accessorKey: "newsletter_email",
@@ -31,37 +92,57 @@ const Newsletter = () => {
             <Mail className="size-3.5" />
           </div>
           <span className="font-semibold text-foreground text-xs">
-            {row.original.newsletter_email}
+            {row.original.newsletter_email || row.original.email || "-"}
           </span>
         </div>
       ),
     },
     {
       header: "Subscription Date",
-      accessorKey: "created_at",
+      accessorKey: "newsletter_created",
       cell: ({ row }) => {
-        const date = new Date(row.original.created_at);
+        const rawDate =
+          row.original.newsletter_created ||
+          row.original.created_at ||
+          row.original.newsletter_created_at;
+
+        if (!rawDate)
+          return <span className="text-xs text-muted-foreground">-</span>;
+
+        const date = new Date(rawDate);
         return (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Calendar className="size-3.5 text-muted-foreground" />
             <span>
-              {`${String(date.getDate()).padStart(2, "0")}-${String(
-                date.getMonth() + 1
-              ).padStart(2, "0")}-${date.getFullYear()}`}
+              {!isNaN(date.getTime())
+                ? `${String(date.getDate()).padStart(2, "0")}-${String(
+                    date.getMonth() + 1
+                  ).padStart(2, "0")}-${date.getFullYear()}`
+                : rawDate}
             </span>
           </div>
         );
       },
     },
+    {
+      header: "Actions",
+      accessorKey: "actions",
+      cell: ({ row }) => (
+        <button
+          type="button"
+          className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          title="Delete Subscriber"
+          onClick={() => {
+            setDeleteId(row.original.id);
+            setOpenDelete(true);
+          }}
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      ),
+    },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -89,14 +170,56 @@ const Newsletter = () => {
 
       <DataTable
         columns={columns}
-        data={data?.data || []}
-        pageSize={10}
+        data={subscriberList}
+        pageSize={perPage}
         isLoading={isLoading}
         isFetching={isFetching}
+        serverPagination={{
+          pageIndex: pageIndex,
+          pageCount: totalPages,
+          total: totalRecords,
+          searchValue: searchTerm,
+          onPageChange: (newPage) => setPageIndex(newPage),
+          onSearch: (newSearch) => {
+            setSearchTerm(newSearch);
+            setPageIndex(0);
+          },
+        }}
         searchPlaceholder="Search subscribers..."
       />
+
+
+
+      <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
+        <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Delete Subscriber</AlertDialogTitle>
+
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to delete this subscriber? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-lg" onClick={() => setDeleteId(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg"
+              onClick={() => {
+                handleDelete(deleteId);
+                setOpenDelete(false);
+                setDeleteId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };
 
 export default Newsletter;
+

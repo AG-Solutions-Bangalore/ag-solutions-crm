@@ -92,12 +92,11 @@ const SponsorModal = ({ setOpenEdit }) => {
       });
 
       if (res?.code === 201 || res?.code === 200) {
-        toast.success(res?.message || "SPONSAR created successfully");
+        toast.success(res?.message || "Sponsor created successfully");
         queryClient.invalidateQueries({ queryKey: ["sponsor"] });
-        // Adjust the route as per your routing setup
-        navigate("/Sponsar-list");
+        setOpenEdit(false);
       } else {
-        toast.error(res?.message || "Failed to create project");
+        toast.error(res?.message || "Failed to create sponsor");
       }
     } catch (error) {
       const errorsMsg = error?.response?.data?.message;
@@ -105,65 +104,20 @@ const SponsorModal = ({ setOpenEdit }) => {
     }
   };
 
-  // Sync data whenever the Category prop changes
-
-  // const handleUpdate = async () => {
-  //   if (!formData.sponsors_image.trim()) {
-  //     toast.error("Category name is required");
-  //     return;
-  //   }
-
-  //   try {
-  //     const response = await trigger({
-  //       url: SPONSAR_API.create(),
-  //       method: "POST",
-  //       data: {
-  //         category_name: formData.category_name,
-  //         category_status: formData.category_status,
-  //       },
-  //     });
-
-  //     queryClient.setQueryData(["category", null], (old) => {
-  //       if (!old?.data?.data) return old;
-  //       return {
-  //         ...old,
-  //         data: {
-  //           ...old.data,
-  //           data: old.data.data.map((item) =>
-  //             item.id === Category.id
-  //               ? {
-  //                   ...item,
-  //                   category_name: formData.category_name,
-  //                   category_status: formData.category_status,
-  //                 }
-  //               : item,
-  //           ),
-  //         },
-  //       };
-  //     });
-
-  //     toast.success(response?.message || "Category updated successfully");
-  //     setOpenEdit(false);
-  //   } catch (error) {
-  //     toast.error("Failed to update category");
-  //   }
-  // };
-
   return (
     <Modal
       open={true}
       onClose={() => setOpenEdit(false)}
-      title="Create Sponsar"
+      title="Create Sponsor"
       onSubmit={handleSubmit}
       submitText="Create"
       isLoading={loading}
       maxWidthClass="sm:max-w-md"
     >
-      {/* Custom fields specific only to this modal */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="sponsors_image" className="text-sm font-medium">
-            Upload Image
+            Upload Logo <Redstar />
           </Label>
           <ImageUpload
             id="sponsors_image"
@@ -181,36 +135,38 @@ const SponsorModal = ({ setOpenEdit }) => {
             <p className="text-sm text-red-500 mt-1">{errors.sponsors_image}</p>
           )}
         </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="project_name" className="text-sm font-medium">
-          Sponsar sort <Redstar />
-        </Label>
-        <Input
-          id="sponsors_sort"
-          name="sponsors_sort"
-          type="text"
-          placeholder="Enter project name"
-          value={formData.sponsors_sort}
-          onChange={handleInputChange}
-        />
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="project_name" className="text-sm font-medium">
-          Sponsors Url <Redstar />
-        </Label>
-        <Input
-          id="sponsors_url"
-          name="sponsors_url"
-          type="text"
-          placeholder="Enter project name"
-          value={formData.sponsors_url}
-          onChange={handleInputChange}
-        />
+        <div className="space-y-2">
+          <Label htmlFor="sponsors_sort" className="text-sm font-medium">
+            Sort Order
+          </Label>
+          <Input
+            id="sponsors_sort"
+            name="sponsors_sort"
+            type="number"
+            placeholder="Enter sort order (e.g. 1)"
+            value={formData.sponsors_sort}
+            onChange={handleInputChange}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="sponsors_url" className="text-sm font-medium">
+            Sponsor Website URL <Redstar />
+          </Label>
+          <Input
+            id="sponsors_url"
+            name="sponsors_url"
+            type="text"
+            placeholder="e.g. https://example.com"
+            value={formData.sponsors_url}
+            onChange={handleInputChange}
+          />
+        </div>
       </div>
     </Modal>
   );
 };
 
 export default SponsorModal;
+

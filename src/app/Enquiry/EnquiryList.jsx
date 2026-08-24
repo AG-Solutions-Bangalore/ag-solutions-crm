@@ -31,22 +31,18 @@ import {
 
 const EnquiryList = () => {
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
-
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const queryClient = useQueryClient();
 
-  // Server-side paginated React Query hook
-  const { data, isLoading, isFetching, error } = useGetApiMutation({
+  const { data, isLoading, isFetching } = useGetApiMutation({
     url: `${BASE_URL}/enquiry`,
-    queryKey: ["enquiry", pageIndex, pageSize, searchTerm],
+    queryKey: ["enquiry", pageIndex, searchTerm],
     params: {
-      page: pageIndex + 1,
-      per_page: pageSize,
+      page: searchTerm ? undefined : pageIndex + 1,
       search: searchTerm || undefined,
     },
   });
@@ -72,9 +68,21 @@ const EnquiryList = () => {
     }
   };
 
-  const enquiriesList = data?.data?.data || [];
-  const totalRecords = data?.data?.total || enquiriesList.length || 0;
-  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / pageSize) || 1;
+  const enquiriesList = Array.isArray(data?.data?.data)
+    ? data.data.data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+
+  const totalRecords = searchTerm
+    ? enquiriesList.length
+    : (data?.data?.total || enquiriesList.length || 0);
+  const totalPages = searchTerm
+    ? (Math.ceil(totalRecords / 10) || 1)
+    : (data?.data?.last_page || Math.ceil(totalRecords / 10) || 1);
+
+  console.log("[EnquiryList] Render -> pageIndex:", pageIndex, "totalRecords:", totalRecords, "totalPages:", totalPages, "received items:", enquiriesList.length, "isLoading:", isLoading, "isFetching:", isFetching);
+
 
   const columns = [
     {
@@ -82,10 +90,12 @@ const EnquiryList = () => {
       accessorKey: "slno",
       cell: ({ row }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {pageIndex * pageSize + row.index + 1}
+          {pageIndex * 10 + row.index + 1}
         </span>
       ),
     },
+
+
     {
       header: "Name",
       accessorKey: "enquiryFullName",
@@ -245,31 +255,30 @@ const EnquiryList = () => {
       <DataTable
         columns={columns}
         data={enquiriesList}
-        pageSize={pageSize}
+        pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
         serverPagination={{
           pageIndex: pageIndex,
           pageCount: totalPages,
           total: totalRecords,
+          searchValue: searchTerm,
           onPageChange: (newPage) => setPageIndex(newPage),
-          onPageSizeChange: (newSize) => {
-            setPageSize(newSize);
-            setPageIndex(0);
-          },
-          onSearch: (query) => {
-            setSearchTerm(query);
+          onSearch: (newSearch) => {
+            setSearchTerm(newSearch);
             setPageIndex(0);
           },
         }}
         searchPlaceholder="Search enquiries by name, email, mobile..."
       />
 
+
+
       {/* 🔹 View Full Details Dialog */}
       <Dialog open={!!selectedEnquiry} onOpenChange={() => setSelectedEnquiry(null)}>
-        <DialogContent className="max-w-lg rounded-xl border border-border bg-card/95 backdrop-blur-md">
+        <DialogContent className="max-w-lg rounded-xl border border-border bg-card shadow-xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-foreground">
+            <DialogTitle className="flex items-center gap-2 text-foreground text-base font-semibold">
               <MessageSquare className="size-5 text-primary" />
               <span>Enquiry Details</span>
             </DialogTitle>
@@ -279,24 +288,24 @@ const EnquiryList = () => {
           </DialogHeader>
 
           {selectedEnquiry && (
-            <div className="space-y-3.5 py-2 text-xs">
-              <div className="grid grid-cols-2 gap-3 bg-muted/40 p-3 rounded-lg border border-border/60">
+            <div className="space-y-4 py-2 text-xs">
+              <div className="grid grid-cols-2 gap-3 bg-muted/40 p-3.5 rounded-lg border border-border">
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Name:</span>
+                  <span className="text-muted-foreground block text-[11px] font-medium">Name:</span>
                   <span className="font-semibold text-foreground text-sm">{selectedEnquiry.enquiryFullName || "-"}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Status:</span>
+                  <span className="text-muted-foreground block text-[11px] font-medium">Status:</span>
                   <span className="font-semibold text-foreground">{selectedEnquiry.enquiryStatus || selectedEnquiry.status || "Pending"}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Mobile:</span>
+                  <span className="text-muted-foreground block text-[11px] font-medium">Mobile:</span>
                   <a href={`tel:${selectedEnquiry.enquiryMobile}`} className="font-medium text-primary hover:underline">
                     {selectedEnquiry.enquiryMobile || "-"}
                   </a>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block text-[11px]">Email:</span>
+                  <span className="text-muted-foreground block text-[11px] font-medium">Email:</span>
                   <a href={`mailto:${selectedEnquiry.enquiryEmail}`} className="font-medium text-primary hover:underline">
                     {selectedEnquiry.enquiryEmail || "-"}
                   </a>
@@ -304,25 +313,25 @@ const EnquiryList = () => {
               </div>
 
               <div>
-                <span className="text-muted-foreground block text-[11px] mb-1 font-medium">Message:</span>
-                <div className="p-3 bg-background rounded-lg border border-border text-foreground leading-relaxed whitespace-pre-wrap">
+                <span className="text-muted-foreground block text-[11px] mb-1.5 font-medium">Message:</span>
+                <div className="p-3.5 bg-muted/30 rounded-lg border border-border text-foreground text-xs leading-relaxed whitespace-pre-wrap min-h-[70px]">
                   {selectedEnquiry.enquiryMessage || "No message content"}
                 </div>
               </div>
 
               {(selectedEnquiry.utm_campaign || selectedEnquiry.utm_source || selectedEnquiry.utm_medium) && (
-                <div className="grid grid-cols-3 gap-2 text-[11px] pt-1">
-                  <div className="bg-muted/30 p-2 rounded border border-border/40">
-                    <span className="text-muted-foreground block">Campaign:</span>
-                    <span className="font-medium text-foreground truncate block">{selectedEnquiry.utm_campaign || "-"}</span>
+                <div className="grid grid-cols-3 gap-2.5 text-[11px] pt-1">
+                  <div className="bg-muted/40 p-2.5 rounded-lg border border-border">
+                    <span className="text-muted-foreground block text-[10px]">Campaign:</span>
+                    <span className="font-medium text-foreground truncate block mt-0.5">{selectedEnquiry.utm_campaign || "-"}</span>
                   </div>
-                  <div className="bg-muted/30 p-2 rounded border border-border/40">
-                    <span className="text-muted-foreground block">Source:</span>
-                    <span className="font-medium text-foreground truncate block">{selectedEnquiry.utm_source || "-"}</span>
+                  <div className="bg-muted/40 p-2.5 rounded-lg border border-border">
+                    <span className="text-muted-foreground block text-[10px]">Source:</span>
+                    <span className="font-medium text-foreground truncate block mt-0.5">{selectedEnquiry.utm_source || "-"}</span>
                   </div>
-                  <div className="bg-muted/30 p-2 rounded border border-border/40">
-                    <span className="text-muted-foreground block">Medium:</span>
-                    <span className="font-medium text-foreground truncate block">{selectedEnquiry.utm_medium || "-"}</span>
+                  <div className="bg-muted/40 p-2.5 rounded-lg border border-border">
+                    <span className="text-muted-foreground block text-[10px]">Medium:</span>
+                    <span className="font-medium text-foreground truncate block mt-0.5">{selectedEnquiry.utm_medium || "-"}</span>
                   </div>
                 </div>
               )}
@@ -333,7 +342,7 @@ const EnquiryList = () => {
 
       {/* 🔹 Delete Confirmation Dialog */}
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-        <AlertDialogContent className="rounded-xl border border-border bg-card/95 backdrop-blur-md">
+        <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Delete Enquiry</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
@@ -358,6 +367,7 @@ const EnquiryList = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </motion.div>
   );
 };

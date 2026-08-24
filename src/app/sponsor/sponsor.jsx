@@ -1,7 +1,7 @@
 import DataTable from "@/components/common/data-table";
 import BASE_URL from "@/config/base-url";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { Edit, ExternalLink, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApiMutation } from "@/hooks/useApiMutation";
@@ -9,8 +9,9 @@ import { toast } from "sonner";
 import { getImageBaseUrl, getNoImageUrl } from "@/utils/imageUtils";
 import { SPONSOR_API } from "@/constants/apiConstants";
 import ImageCell from "@/components/common/ImageCell";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import SponsorModal from "./SponsarModal";
+import SponsarEdit from "./SponsarEdit";
 
 import {
   AlertDialog,
@@ -27,17 +28,21 @@ import Loader from "@/components/loader/loader";
 const Sponsor = () => {
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
-  const navigate = useNavigate();
+  const [openCreate, setOpenCreate] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [selectedSponsar, setSelectedSponsar] = useState(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/sponsor`,
-    queryKey: ["sponsor", pageIndex, pageSize],
+    queryKey: ["sponsor", pageIndex, pageSize, searchTerm],
     params: {
-      page: pageIndex + 1,
+      page: searchTerm ? undefined : pageIndex + 1,
       per_page: pageSize,
+      search: searchTerm || undefined,
     },
   });
 
@@ -63,9 +68,13 @@ const Sponsor = () => {
   const sponsorBaseUrl = getImageBaseUrl(data?.image_url, "Sponsor");
   const noImageUrl = getNoImageUrl(data?.image_url);
 
-  const sponsorList = data?.data?.data || [];
-  const totalRecords = data?.data?.total || sponsorList.length || 0;
-  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / pageSize) || 1;
+  const sponsorList = data?.data?.data || data?.data || [];
+  const totalRecords = searchTerm
+    ? sponsorList.length
+    : (data?.data?.total || sponsorList.length || 0);
+  const totalPages = searchTerm
+    ? (Math.ceil(totalRecords / pageSize) || 1)
+    : (data?.data?.last_page || Math.ceil(totalRecords / pageSize) || 1);
 
   const columns = [
     {
@@ -79,16 +88,16 @@ const Sponsor = () => {
     },
     {
       header: "Logo",
-      accessorKey: "sponsor_image",
+      accessorKey: "sponsors_image",
       cell: ({ row }) => {
-        const fileName = row.original.sponsor_image;
+        const fileName = row.original.sponsors_image || row.original.sponsor_image;
         const src = fileName ? `${sponsorBaseUrl}${fileName}` : noImageUrl;
 
         return (
           <ImageCell
             src={src}
             fallback={noImageUrl}
-            alt={row.original.sponsor_name || "Sponsor logo"}
+            alt={row.original.sponsors_name || row.original.sponsor_name || "Sponsor logo"}
             width={60}
             height={36}
           />
@@ -97,19 +106,30 @@ const Sponsor = () => {
       enableSorting: false,
     },
     {
-      header: "Sponsor Name",
-      accessorKey: "sponsor_name",
-      cell: ({ row }) => (
-        <span className="font-semibold text-foreground text-xs">
-          {row.original.sponsor_name || "-"}
-        </span>
-      ),
+      header: "Sponsor Name / Url",
+      accessorKey: "sponsors_url",
+      cell: ({ row }) => {
+        const name =
+          row.original.sponsors_name ||
+          row.original.sponsor_name ||
+          row.original.sponsors_url ||
+          row.original.sponsor_url ||
+          `Sponsor #${row.original.id}`;
+        return (
+          <span className="font-semibold text-foreground text-xs">
+            {name}
+          </span>
+        );
+      },
     },
     {
       header: "Website Link",
       accessorKey: "sponsor_link",
       cell: ({ row }) => {
-        const link = row.original.sponsor_link;
+        const link =
+          row.original.sponsors_url ||
+          row.original.sponsor_link ||
+          row.original.sponsor_url;
         return link ? (
           <a
             href={link.startsWith("http") ? link : `https://${link}`}
@@ -117,8 +137,8 @@ const Sponsor = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
           >
-            <span>{link}</span>
-            <ExternalLink className="size-3" />
+            <span className="max-w-[200px] truncate">{link}</span>
+            <ExternalLink className="size-3 shrink-0" />
           </a>
         ) : (
           <span className="text-muted-foreground">-</span>
@@ -129,28 +149,33 @@ const Sponsor = () => {
       header: "Actions",
       accessorKey: "actions",
       cell: ({ row }) => (
-        <button
-          type="button"
-          className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-          title="Delete Sponsor"
-          onClick={() => {
-            setDeleteId(row.original.id);
-            setOpenDelete(true);
-          }}
-        >
-          <Trash2 className="size-3.5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+            title="Edit Sponsor"
+            onClick={() => {
+              setSelectedSponsar(row.original);
+              setOpenEdit(true);
+            }}
+          >
+            <Edit className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            title="Delete Sponsor"
+            onClick={() => {
+              setDeleteId(row.original.id);
+              setOpenDelete(true);
+            }}
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        </div>
       ),
     },
   ];
-
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -186,23 +211,38 @@ const Sponsor = () => {
           pageIndex: pageIndex,
           pageCount: totalPages,
           total: totalRecords,
+          searchValue: searchTerm,
           onPageChange: (newPage) => setPageIndex(newPage),
           onPageSizeChange: (newSize) => {
             setPageSize(newSize);
             setPageIndex(0);
           },
+          onSearch: (newSearch) => {
+            setSearchTerm(newSearch);
+            setPageIndex(0);
+          },
         }}
         addButton={{
-          to: "/sponsor/create",
+          onClick: () => setOpenCreate(true),
           label: "Add Sponsor",
         }}
         searchPlaceholder="Search sponsors..."
       />
 
+      {openCreate && <SponsorModal setOpenEdit={setOpenCreate} />}
+      {openEdit && selectedSponsar && (
+        <SponsarEdit
+          setOpenEdit={setOpenEdit}
+          selectedSponsar={selectedSponsar}
+          sponsorsBaseUrl={sponsorBaseUrl}
+        />
+      )}
+
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-        <AlertDialogContent className="rounded-xl border border-border bg-card/95 backdrop-blur-md">
+        <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Delete Sponsor</AlertDialogTitle>
+
             <AlertDialogDescription className="text-muted-foreground">
               Are you sure you want to delete this sponsor? This action cannot be undone.
             </AlertDialogDescription>
@@ -230,3 +270,4 @@ const Sponsor = () => {
 };
 
 export default Sponsor;
+

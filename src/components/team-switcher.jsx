@@ -32,9 +32,10 @@ export function TeamSwitcher({ teams }) {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 rounded-xl transition-all p-2 cursor-pointer"
             >
-              <div className="flex aspect-square size-9 items-center justify-center rounded-lg bg-gradient-to-tr from-primary to-primary/80 text-primary-foreground shadow-sm">
+              <div className="flex aspect-square size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
                 <LogoIcon className="size-4.5" />
               </div>
+
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-bold tracking-tight text-sidebar-foreground">
                   {activeTeam.name}
@@ -47,8 +48,9 @@ export function TeamSwitcher({ teams }) {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl p-1.5 shadow-xl border border-border/80 bg-popover/95 backdrop-blur-md"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl p-1.5 shadow-xl border border-border bg-popover"
             align="start"
+
             side={isMobile ? "bottom" : "right"}
             sideOffset={4}
           >

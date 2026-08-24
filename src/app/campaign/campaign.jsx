@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import DataTable from "@/components/common/data-table";
+import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/loader/loader";
+
 import BASE_URL from "@/config/base-url";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
@@ -20,20 +22,32 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const Campaign = () => {
+  const [pageIndex, setPageIndex] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
   const [deleteId, setDeleteId] = useState(null);
-  const [campaigns, setCampaigns] = useState([]);
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
-    url: `${BASE_URL}/campaign-visit?per_page=100`,
-    queryKey: ["campaign-visit-all"],
+    url: `${BASE_URL}/campaign-visit`,
+    queryKey: ["campaign-visit", pageIndex, searchTerm],
+    params: {
+      page: searchTerm ? undefined : pageIndex + 1,
+      search: searchTerm || undefined,
+    },
   });
 
-  useEffect(() => {
-    if (data?.data?.data) {
-      setCampaigns(data.data.data);
-    }
-  }, [data]);
+  const campaigns = Array.isArray(data?.data?.data)
+    ? data.data.data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+
+  const totalRecords = searchTerm
+    ? campaigns.length
+    : (data?.data?.total || campaigns.length || 0);
+  const totalPages = searchTerm
+    ? (Math.ceil(totalRecords / 10) || 1)
+    : (data?.data?.last_page || Math.ceil(totalRecords / 10) || 1);
 
   const { trigger: deleteCampaign } = useApiMutation();
 
@@ -43,7 +57,7 @@ const Campaign = () => {
         url: `${BASE_URL}/campaign-visit/${id}`,
         method: "DELETE",
       });
-      setCampaigns((prev) => prev.filter((item) => item.id !== id));
+      queryClient.invalidateQueries({ queryKey: ["campaign-visit"] });
       toast.success("Campaign visit record deleted");
     } catch {
       toast.error("Failed to delete campaign record");
@@ -56,10 +70,11 @@ const Campaign = () => {
       accessorKey: "slno",
       cell: ({ row }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {row.index + 1}
+          {pageIndex * 10 + row.index + 1}
         </span>
       ),
     },
+
     {
       header: "Visit Date",
       accessorKey: "visit_date",
@@ -81,11 +96,12 @@ const Campaign = () => {
       header: "Campaign",
       accessorKey: "utm_campaign",
       cell: ({ row }) => (
-        <span className="text-xs font-medium text-foreground bg-muted/60 px-2 py-0.5 rounded-md">
+        <Badge variant="cyan" className="text-xs font-medium">
           {row.original.utm_campaign || "-"}
-        </span>
+        </Badge>
       ),
     },
+
     {
       header: "Source",
       accessorKey: "utm_source",
@@ -109,14 +125,6 @@ const Campaign = () => {
       ),
     },
   ];
-
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -148,12 +156,25 @@ const Campaign = () => {
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
+        serverPagination={{
+          pageIndex: pageIndex,
+          pageCount: totalPages,
+          total: totalRecords,
+          searchValue: searchTerm,
+          onPageChange: (newPage) => setPageIndex(newPage),
+          onSearch: (newSearch) => {
+            setSearchTerm(newSearch);
+            setPageIndex(0);
+          },
+        }}
         searchPlaceholder="Search by campaign or source..."
       />
+
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="rounded-xl border border-border bg-card/95 backdrop-blur-md">
+        <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Delete Record</AlertDialogTitle>
+
             <AlertDialogDescription className="text-muted-foreground">
               Are you sure you want to permanently delete this campaign visit record?
             </AlertDialogDescription>

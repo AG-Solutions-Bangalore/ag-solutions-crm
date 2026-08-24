@@ -61,8 +61,9 @@ const VersionCheck = () => {
   return (
     <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
       <DialogContent
-        className="max-w-md p-6 rounded-2xl shadow-2xl border bg-gradient-to-br from-white to-gray-100 dark:from-zinc-900 dark:to-zinc-800 [&>button.absolute]:hidden"
+        className="max-w-md p-6 rounded-2xl shadow-2xl border border-border bg-card [&>button.absolute]:hidden"
         aria-describedby={undefined}
+
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         hideClose={true}

@@ -22,7 +22,8 @@ export default function Page({ children }) {
       <AppSidebar />
 
       <SidebarInset className="flex flex-col min-h-screen flex-1 min-w-0 bg-background">
-        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 print:hidden">
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-4 print:hidden">
+
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-1 h-8 w-8 hover:bg-accent rounded-md" />
             <Separator

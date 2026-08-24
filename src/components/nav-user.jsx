@@ -51,9 +51,10 @@ export function NavUser({ user }) {
       <SidebarMenuItem>
         {showDialog ? (
           <div
-            className="rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-sidebar-foreground px-3 py-2 animate-pulse w-full cursor-pointer transition-all hover:opacity-90 mb-2"
+            className="rounded-xl bg-muted border border-border text-sidebar-foreground px-3 py-2 w-full cursor-pointer transition-all hover:bg-muted/80 mb-2"
             onClick={handleOpenDialog}
           >
+
             <div className="flex justify-center items-center gap-1.5 text-xs font-medium">
               <span>Update v{serverVersion} available</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -85,8 +86,9 @@ export function NavUser({ user }) {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl p-1.5 shadow-xl border border-border/80 bg-popover/95 backdrop-blur-md"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl p-1.5 shadow-xl border border-border bg-popover"
             side={isMobile ? "bottom" : "right"}
+
             align="end"
             sideOffset={6}
           >

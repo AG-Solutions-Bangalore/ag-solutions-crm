@@ -22,23 +22,28 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Loader from "@/components/loader/loader";
+import FaqModal from "./FaqModal";
 
 const FaqList = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedFaqId, setSelectedFaqId] = useState(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
-  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isFetching, error } = useGetApiMutation({
+  const { data, isLoading, isFetching, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/faq`,
-    queryKey: ["faq", pageIndex, pageSize],
+    queryKey: ["faq", pageIndex, pageSize, searchTerm],
     params: {
-      page: pageIndex + 1,
+      page: searchTerm ? undefined : pageIndex + 1,
       per_page: pageSize,
+      search: searchTerm || undefined,
     },
   });
+
 
   const { trigger: deleteTrigger } = useApiMutation();
 
@@ -60,8 +65,12 @@ const FaqList = () => {
   };
 
   const faqList = data?.data?.data || data?.data || [];
-  const totalRecords = data?.data?.total || faqList.length || 0;
-  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / pageSize) || 1;
+  const totalRecords = searchTerm
+    ? faqList.length
+    : (data?.data?.total || faqList.length || 0);
+  const totalPages = searchTerm
+    ? (Math.ceil(totalRecords / pageSize) || 1)
+    : (data?.data?.last_page || Math.ceil(totalRecords / pageSize) || 1);
 
   const columns = [
     {
@@ -74,29 +83,32 @@ const FaqList = () => {
       ),
     },
     {
-      header: "Question",
-      accessorKey: "faq_question",
-      cell: ({ row }) => (
-        <span className="font-semibold text-foreground text-xs line-clamp-2 max-w-sm">
-          {row.original.faq_question}
-        </span>
-      ),
-    },
-    {
-      header: "Answer",
-      accessorKey: "faq_answer",
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground line-clamp-2 max-w-md">
-          {row.original.faq_answer}
-        </span>
-      ),
+      header: "FAQ Page / Section",
+      accessorKey: "faq_for",
+      cell: ({ row }) => {
+        const rawName = row.original.faq_for || "General";
+        const displayName = String(rawName)
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-foreground text-xs">
+              {displayName}
+            </span>
+            <span className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded font-mono">
+              {rawName}
+            </span>
+          </div>
+        );
+      },
     },
     {
       header: "Status",
       accessorKey: "faq_status",
       cell: ({ row }) => (
         <ToggleStatus
-          initialStatus={row.original.faq_status}
+          initialStatus={row.original.faq_status || "Active"}
           apiUrl={FAQ_API.updateStatus(row.original.id)}
           payloadKey="faq_status"
           method="patch"
@@ -106,6 +118,7 @@ const FaqList = () => {
         />
       ),
     },
+
     {
       header: "Actions",
       accessorKey: "actions",
@@ -115,7 +128,10 @@ const FaqList = () => {
             type="button"
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
             title="Edit FAQ"
-            onClick={() => navigate(`/faq-edit/${row.original.id}`)}
+            onClick={() => {
+              setSelectedFaqId(row.original.id);
+              setOpenModal(true);
+            }}
           >
             <Edit className="size-3.5" />
           </button>
@@ -134,14 +150,6 @@ const FaqList = () => {
       ),
     },
   ];
-
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -177,23 +185,41 @@ const FaqList = () => {
           pageIndex: pageIndex,
           pageCount: totalPages,
           total: totalRecords,
+          searchValue: searchTerm,
           onPageChange: (newPage) => setPageIndex(newPage),
           onPageSizeChange: (newSize) => {
             setPageSize(newSize);
             setPageIndex(0);
           },
+          onSearch: (newSearch) => {
+            setSearchTerm(newSearch);
+            setPageIndex(0);
+          },
         }}
         addButton={{
-          to: "/faq/create",
+          onClick: () => {
+            setSelectedFaqId(null);
+            setOpenModal(true);
+          },
           label: "Add FAQ",
         }}
         searchPlaceholder="Search FAQs..."
       />
 
+      {openModal && (
+        <FaqModal
+          setOpenModal={setOpenModal}
+          faqId={selectedFaqId}
+          refetch={refetch}
+        />
+      )}
+
+
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
-        <AlertDialogContent className="rounded-xl border border-border bg-card/95 backdrop-blur-md">
+        <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Delete FAQ</AlertDialogTitle>
+
             <AlertDialogDescription className="text-muted-foreground">
               Are you sure you want to delete this FAQ? This action cannot be undone.
             </AlertDialogDescription>
@@ -221,3 +247,4 @@ const FaqList = () => {
 };
 
 export default FaqList;
+
