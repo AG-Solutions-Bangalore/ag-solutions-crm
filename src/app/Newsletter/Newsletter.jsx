@@ -24,13 +24,17 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const Newsletter = () => {
+  const [pageIndex, setPageIndex] = useState(0);
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/newsletter`,
-    queryKey: ["newsletter"],
+    queryKey: ["newsletter", pageIndex],
+    params: {
+      page: pageIndex + 1,
+    },
   });
 
   const { trigger: deleteTrigger } = useApiMutation();
@@ -58,16 +62,20 @@ const Newsletter = () => {
     ? data.data
     : [];
 
+  const totalRecords = data?.data?.total || subscriberList.length || 0;
+  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
+
   const columns = [
     {
       header: "SL No",
       accessorKey: "slno",
       cell: ({ row }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {row.index + 1}
+          {pageIndex * 10 + row.index + 1}
         </span>
       ),
     },
+
     {
       header: "Subscriber Email",
       accessorKey: "newsletter_email",
@@ -169,8 +177,15 @@ const Newsletter = () => {
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
+        serverPagination={{
+          pageIndex: pageIndex,
+          pageCount: totalPages,
+          total: totalRecords,
+          onPageChange: (newPage) => setPageIndex(newPage),
+        }}
         searchPlaceholder="Search subscribers..."
       />
+
 
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
         <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">

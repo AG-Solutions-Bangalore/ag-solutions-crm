@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const Category = () => {
+  const [pageIndex, setPageIndex] = useState(0);
   const queryClient = useQueryClient();
   const [openCreate, setOpenCreate] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
@@ -33,7 +34,10 @@ const Category = () => {
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/category`,
-    queryKey: ["category"],
+    queryKey: ["category", pageIndex],
+    params: {
+      page: pageIndex + 1,
+    },
   });
 
   const { trigger: deleteTrigger } = useApiMutation();
@@ -55,16 +59,26 @@ const Category = () => {
     }
   };
 
+  const categoryList = Array.isArray(data?.data?.data)
+    ? data.data.data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+
+  const totalRecords = data?.data?.total || categoryList.length || 0;
+  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
+
   const columns = [
     {
       header: "SL No",
       accessorKey: "slno",
       cell: ({ row }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {row.index + 1}
+          {pageIndex * 10 + row.index + 1}
         </span>
       ),
     },
+
     {
       header: "Category Name",
       accessorKey: "category_name",
@@ -155,16 +169,23 @@ const Category = () => {
 
       <DataTable
         columns={columns}
-        data={data?.data?.data || data?.data || []}
+        data={categoryList}
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
+        serverPagination={{
+          pageIndex: pageIndex,
+          pageCount: totalPages,
+          total: totalRecords,
+          onPageChange: (newPage) => setPageIndex(newPage),
+        }}
         addButton={{
           onClick: () => setOpenCreate(true),
           label: "Add Category",
         }}
         searchPlaceholder="Search categories..."
       />
+
 
       {openCreate && <CreateCategoryModal setOpenCreate={setOpenCreate} />}
       {openEdit && selectedCategory && (

@@ -22,23 +22,26 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const Campaign = () => {
+  const [pageIndex, setPageIndex] = useState(0);
   const queryClient = useQueryClient();
   const [deleteId, setDeleteId] = useState(null);
-  const [campaigns, setCampaigns] = useState([]);
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
-    url: `${BASE_URL}/campaign-visit?per_page=100`,
-    queryKey: ["campaign-visit-all"],
+    url: `${BASE_URL}/campaign-visit`,
+    queryKey: ["campaign-visit", pageIndex],
+    params: {
+      page: pageIndex + 1,
+    },
   });
 
-  useEffect(() => {
-    const list = Array.isArray(data?.data?.data)
-      ? data.data.data
-      : Array.isArray(data?.data)
-      ? data.data
-      : [];
-    setCampaigns(list);
-  }, [data]);
+  const campaigns = Array.isArray(data?.data?.data)
+    ? data.data.data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+
+  const totalRecords = data?.data?.total || campaigns.length || 0;
+  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
 
   const { trigger: deleteCampaign } = useApiMutation();
 
@@ -48,14 +51,12 @@ const Campaign = () => {
         url: `${BASE_URL}/campaign-visit/${id}`,
         method: "DELETE",
       });
-      setCampaigns((prev) => prev.filter((item) => item.id !== id));
-      queryClient.invalidateQueries({ queryKey: ["campaign-visit-all"] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-visit"] });
       toast.success("Campaign visit record deleted");
     } catch {
       toast.error("Failed to delete campaign record");
     }
   };
-
 
   const columns = [
     {
@@ -63,10 +64,11 @@ const Campaign = () => {
       accessorKey: "slno",
       cell: ({ row }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {row.index + 1}
+          {pageIndex * 10 + row.index + 1}
         </span>
       ),
     },
+
     {
       header: "Visit Date",
       accessorKey: "visit_date",
@@ -156,8 +158,15 @@ const Campaign = () => {
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
+        serverPagination={{
+          pageIndex: pageIndex,
+          pageCount: totalPages,
+          total: totalRecords,
+          onPageChange: (newPage) => setPageIndex(newPage),
+        }}
         searchPlaceholder="Search by campaign or source..."
       />
+
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
           <AlertDialogHeader>

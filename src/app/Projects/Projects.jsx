@@ -35,6 +35,7 @@ import Loader from "@/components/loader/loader";
 import ToggleStatus from "@/components/toogle/status-toogle";
 
 const Projects = () => {
+  const [pageIndex, setPageIndex] = useState(0);
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
@@ -46,8 +47,13 @@ const Projects = () => {
 
   const { data, isLoading, isFetching, error, refetch } = useGetApiMutation({
     url: `${BASE_URL}/project`,
-    queryKey: ["project"],
+    queryKey: ["project", pageIndex, selectedPage],
+    params: {
+      page: pageIndex + 1,
+      page_name: selectedPage !== "all" ? selectedPage : undefined,
+    },
   });
+
 
   const { trigger: deleteTrigger } = useApiMutation();
   const { trigger: updateSortTrigger } = useApiMutation();
@@ -115,6 +121,9 @@ const Projects = () => {
     ? data.data
     : [];
 
+  const totalRecords = data?.data?.total || allProjects.length || 0;
+  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
+
   const uniquePages = [
     ...new Set(allProjects.map((item) => item.page).filter(Boolean)),
   ];
@@ -130,10 +139,11 @@ const Projects = () => {
       accessorKey: "slno",
       cell: ({ row }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {row.index + 1}
+          {pageIndex * 10 + row.index + 1}
         </span>
       ),
     },
+
     {
       header: "Image",
       accessorKey: "project_image",
@@ -290,6 +300,13 @@ const Projects = () => {
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
+        serverPagination={{
+          pageIndex: pageIndex,
+          pageCount: totalPages,
+          total: totalRecords,
+          onPageChange: (newPage) => setPageIndex(newPage),
+        }}
+
         filterProjects={
           <div className="flex items-center gap-2">
             <Select value={selectedPage} onValueChange={setSelectedPage}>

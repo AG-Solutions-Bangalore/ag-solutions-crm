@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const BlogList = () => {
+  const [pageIndex, setPageIndex] = useState(0);
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
   const queryClient = useQueryClient();
@@ -35,7 +36,10 @@ const BlogList = () => {
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/blog`,
-    queryKey: ["blog"],
+    queryKey: ["blog", pageIndex],
+    params: {
+      page: pageIndex + 1,
+    },
   });
 
   const { trigger: deleteTrigger } = useApiMutation();
@@ -66,16 +70,20 @@ const BlogList = () => {
     ? data.data
     : [];
 
+  const totalRecords = data?.data?.total || blogList.length || 0;
+  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
+
   const columns = [
     {
       header: "SL No",
       accessorKey: "slno",
       cell: ({ row }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {row.index + 1}
+          {pageIndex * 10 + row.index + 1}
         </span>
       ),
     },
+
     {
       header: "Banner",
       accessorKey: "blog_banner_image",
@@ -216,12 +224,19 @@ const BlogList = () => {
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
+        serverPagination={{
+          pageIndex: pageIndex,
+          pageCount: totalPages,
+          total: totalRecords,
+          onPageChange: (newPage) => setPageIndex(newPage),
+        }}
         addButton={{
           onClick: () => navigate("/create-blog"),
           label: "Create Blog",
         }}
         searchPlaceholder="Search blogs..."
       />
+
 
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
         <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">

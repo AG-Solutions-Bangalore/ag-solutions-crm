@@ -25,6 +25,7 @@ import {
 import Loader from "@/components/loader/loader";
 
 const GalleryList = () => {
+  const [pageIndex, setPageIndex] = useState(0);
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
@@ -32,7 +33,10 @@ const GalleryList = () => {
 
   const { data, isLoading, isFetching, error } = useGetApiMutation({
     url: `${BASE_URL}/gallery`,
-    queryKey: ["gallery"],
+    queryKey: ["gallery", pageIndex],
+    params: {
+      page: pageIndex + 1,
+    },
   });
 
   const { trigger: deleteTrigger } = useApiMutation();
@@ -63,16 +67,20 @@ const GalleryList = () => {
     ? data.data
     : [];
 
+  const totalRecords = data?.data?.total || galleryList.length || 0;
+  const totalPages = data?.data?.last_page || Math.ceil(totalRecords / 10) || 1;
+
   const columns = [
     {
       header: "SL No",
       accessorKey: "slno",
       cell: ({ row }) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {row.index + 1}
+          {pageIndex * 10 + row.index + 1}
         </span>
       ),
     },
+
     {
       header: "Image",
       accessorKey: "gallery_image",
@@ -163,12 +171,19 @@ const GalleryList = () => {
         pageSize={10}
         isLoading={isLoading}
         isFetching={isFetching}
+        serverPagination={{
+          pageIndex: pageIndex,
+          pageCount: totalPages,
+          total: totalRecords,
+          onPageChange: (newPage) => setPageIndex(newPage),
+        }}
         addButton={{
           onClick: () => setOpenCreate(true),
           label: "Add Image",
         }}
         searchPlaceholder="Search gallery..."
       />
+
 
       {openCreate && <CreateGalleryModal setOpenModal={setOpenCreate} />}
 
