@@ -74,7 +74,7 @@ export const PROJECT_API = {
   byId: (id) => `/project/${id}`,
   deleteById: (id) => `/project/${id}`,
   updateStatus: (id) => `/projects/${id}/status`,
-  updateById: (id) => `/project/${id}?_method=PUT`,
+  updateById: (id) => `/project/${id}`,
   create: "/project",
   updateSort: (id) => `/projects/${id}/sort`,
 };

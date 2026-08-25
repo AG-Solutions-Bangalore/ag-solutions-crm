@@ -132,15 +132,15 @@ const CreateProjects = () => {
       newErrors.page = "Page is required";
       isValid = false;
     }
-    if (!formData.project_name.trim()) {
+    if (!formData.project_name?.trim()) {
       newErrors.project_name = "Project name is required";
       isValid = false;
     }
-    if (!formData.project_type.trim()) {
+    if (!formData.project_type?.trim()) {
       newErrors.project_type = "Project type is required";
       isValid = false;
     }
-    if (!formData.project_image_alt.trim()) {
+    if (!formData.project_image_alt?.trim()) {
       newErrors.project_image_alt = "Image alt text is required";
       isValid = false;
     }
@@ -149,7 +149,6 @@ const CreateProjects = () => {
       isValid = false;
     }
 
-
     setErrors(newErrors);
     return isValid;
   };
@@ -157,6 +156,12 @@ const CreateProjects = () => {
 
   const handleImageChange = (fieldName, file) => {
     if (file) {
+      const ext = file.name.split(".").pop().toLowerCase();
+      if (ext !== "webp") {
+        toast.error("Only WEBP image files (.webp) are allowed");
+        setErrors((prev) => ({ ...prev, [fieldName]: "Only WEBP (.webp) files are allowed" }));
+        return;
+      }
       setFormData({ ...formData, [fieldName]: file });
       const url = URL.createObjectURL(file);
       setPreview({ ...preview, [fieldName]: url });
@@ -184,7 +189,7 @@ const CreateProjects = () => {
     formDataObj.append("project_title", formData.project_name);
     formDataObj.append("project_type", formData.project_type?.trim() || "General");
     formDataObj.append("project_description", formData.project_description || "");
-    formDataObj.append("project_image_alt", formData.project_image_alt || "");
+    formDataObj.append("project_image_alt", formData.project_image_alt?.trim() || formData.project_name);
     formDataObj.append("project_industry", formData.project_industry || "");
     formDataObj.append("project_solution", formData.project_solution || "");
     formDataObj.append("project_features", formData.project_features || "");
@@ -462,6 +467,9 @@ const CreateProjects = () => {
                     onRemove={() => handleRemoveImage("project_image")}
                     error={errors.project_image}
                     maxSize={5}
+                    accept="image/webp,.webp"
+                    allowedExtensions={["webp"]}
+                    format="WEBP only"
                   />
                   {errors.project_image && (
                     <p className="text-sm text-red-500 mt-1">
