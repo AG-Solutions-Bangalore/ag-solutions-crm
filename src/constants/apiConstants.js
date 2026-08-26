@@ -79,6 +79,19 @@ export const PROJECT_API = {
   updateSort: (id) => `/projects/${id}/sort`,
 };
 
+export const TESTIMONIAL_API = {
+  list: "/testimonial",
+  create: "/testimonial",
+  byId: (id) => `/testimonial/${id}`,
+  updateById: (id) => `/testimonial/${id}?_method=PUT`,
+  updateStatus: (id) => `/testimonials/${id}/status`,
+  deleteById: (id) => `/testimonial/${id}`,
+};
+
+export const PAGE_API = {
+  dropdown: "/page",
+};
+
 export const CAMPAIGN_API = {
   list: "/campaign-visit",
   deleteById: (id) => `/campaign-visit/${id}`,
