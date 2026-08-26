@@ -1,13 +1,12 @@
 import DataTable from "@/components/common/data-table";
 import ToggleStatus from "@/components/toogle/status-toogle";
 import BASE_URL from "@/config/base-url";
-import { FAQ_API } from "@/constants/apiConstants";
+import { TESTIMONIAL_API } from "@/constants/apiConstants";
 import { useApiMutation } from "@/hooks/useApiMutation";
 import { useGetApiMutation } from "@/hooks/useGetApiMutation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Edit, Trash2 } from "lucide-react";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -21,22 +20,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import Loader from "@/components/loader/loader";
-import FaqModal from "./FaqModal";
+import TestimonialModal from "./TestimonialModal";
 
-const FaqList = () => {
+const TestimonialList = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [openDelete, setOpenDelete] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-  const [selectedFaqId, setSelectedFaqId] = useState(null);
+  const [selectedTestimonialId, setSelectedTestimonialId] = useState(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
 
   const { data, isLoading, isFetching, error, refetch } = useGetApiMutation({
-    url: `${BASE_URL}/faq`,
-    queryKey: ["faq", pageIndex, pageSize, searchTerm],
+    url: `${BASE_URL}${TESTIMONIAL_API.list}`,
+    queryKey: ["testimonial", pageIndex, pageSize, searchTerm],
     params: {
       page: searchTerm ? undefined : pageIndex + 1,
       per_page: pageSize,
@@ -44,30 +42,29 @@ const FaqList = () => {
     },
   });
 
-
   const { trigger: deleteTrigger } = useApiMutation();
 
   const handleDelete = async (id) => {
     try {
       const res = await deleteTrigger({
-        url: FAQ_API.deleteById(id),
+        url: TESTIMONIAL_API.deleteById(id),
         method: "delete",
       });
       if (res?.code === 200 || res?.code === 201) {
-        queryClient.invalidateQueries({ queryKey: ["faq"] });
-        toast.success(res?.message || "FAQ deleted successfully");
+        queryClient.invalidateQueries({ queryKey: ["testimonial"] });
+        toast.success(res?.message || "Testimonial deleted successfully");
       } else {
-        toast.error(res?.message || "Failed to delete FAQ");
+        toast.error(res?.message || "Failed to delete testimonial");
       }
     } catch (error) {
       toast.error("Something went wrong while deleting");
     }
   };
 
-  const faqList = data?.data?.data || data?.data || [];
+  const testimonialList = data?.data?.data || data?.data || [];
   const totalRecords = searchTerm
-    ? faqList.length
-    : (data?.data?.total || faqList.length || 0);
+    ? testimonialList.length
+    : (data?.data?.total || testimonialList.length || 0);
   const totalPages = searchTerm
     ? (Math.ceil(totalRecords / pageSize) || 1)
     : (data?.data?.last_page || Math.ceil(totalRecords / pageSize) || 1);
@@ -83,10 +80,10 @@ const FaqList = () => {
       ),
     },
     {
-      header: "FAQ Page / Section",
-      accessorKey: "faq_for",
+      header: "Testimonial For",
+      accessorKey: "testimonial_for",
       cell: ({ row }) => {
-        const rawName = row.original.faq_for || "General";
+        const rawName = row.original.testimonial_for || "General";
         const displayName = String(rawName)
           .replace(/-/g, " ")
           .replace(/\b\w/g, (c) => c.toUpperCase());
@@ -99,21 +96,38 @@ const FaqList = () => {
       },
     },
     {
+      header: "Client Name",
+      accessorKey: "testimonial_client_name",
+      cell: ({ row }) => (
+        <span className="font-semibold text-foreground text-xs line-clamp-1 max-w-xs">
+          {row.original.testimonial_client_name || "-"}
+        </span>
+      ),
+    },
+    {
+      header: "Description",
+      accessorKey: "testimonial_description",
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground line-clamp-2 max-w-md">
+          {row.original.testimonial_description || "-"}
+        </span>
+      ),
+    },
+    {
       header: "Status",
-      accessorKey: "faq_status",
+      accessorKey: "testimonial_status",
       cell: ({ row }) => (
         <ToggleStatus
-          initialStatus={row.original.faq_status || "Active"}
-          apiUrl={FAQ_API.updateStatus(row.original.id)}
-          payloadKey="faq_status"
+          initialStatus={row.original.testimonial_status || "Active"}
+          apiUrl={TESTIMONIAL_API.updateStatus(row.original.id)}
+          payloadKey="testimonial_status"
           method="patch"
           onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ["faq"] });
+            queryClient.invalidateQueries({ queryKey: ["testimonial"] });
           }}
         />
       ),
     },
-
     {
       header: "Actions",
       accessorKey: "actions",
@@ -122,9 +136,9 @@ const FaqList = () => {
           <button
             type="button"
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-            title="Edit FAQ"
+            title="Edit Testimonial"
             onClick={() => {
-              setSelectedFaqId(row.original.id);
+              setSelectedTestimonialId(row.original.id);
               setOpenModal(true);
             }}
           >
@@ -133,7 +147,7 @@ const FaqList = () => {
           <button
             type="button"
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-            title="Delete FAQ"
+            title="Delete Testimonial"
             onClick={() => {
               setDeleteId(row.original.id);
               setOpenDelete(true);
@@ -149,7 +163,7 @@ const FaqList = () => {
   if (error) {
     return (
       <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center text-destructive">
-        <p className="font-semibold">Error loading FAQs</p>
+        <p className="font-semibold">Error loading testimonials</p>
       </div>
     );
   }
@@ -163,16 +177,16 @@ const FaqList = () => {
     >
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-bold tracking-tight text-foreground">
-          Frequently Asked Questions
+          Testimonials
         </h1>
         <p className="text-xs text-muted-foreground">
-          Create, organize, and publish FAQs for client guidance.
+          Create, organize, and publish client testimonials across pages.
         </p>
       </div>
 
       <DataTable
         columns={columns}
-        data={faqList}
+        data={testimonialList}
         pageSize={pageSize}
         isLoading={isLoading}
         isFetching={isFetching}
@@ -193,30 +207,29 @@ const FaqList = () => {
         }}
         addButton={{
           onClick: () => {
-            setSelectedFaqId(null);
+            setSelectedTestimonialId(null);
             setOpenModal(true);
           },
-          label: "Add FAQ",
+          label: "Add Testimonial",
         }}
-        searchPlaceholder="Search FAQs..."
+        searchPlaceholder="Search testimonials..."
       />
 
       {openModal && (
-        <FaqModal
+        <TestimonialModal
           setOpenModal={setOpenModal}
-          faqId={selectedFaqId}
+          testimonialId={selectedTestimonialId}
           refetch={refetch}
         />
       )}
 
-
       <AlertDialog open={openDelete} onOpenChange={setOpenDelete}>
         <AlertDialogContent className="rounded-xl border border-border bg-card shadow-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Delete FAQ</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">Delete Testimonial</AlertDialogTitle>
 
             <AlertDialogDescription className="text-muted-foreground">
-              Are you sure you want to delete this FAQ? This action cannot be undone.
+              Are you sure you want to delete this testimonial? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -241,5 +254,4 @@ const FaqList = () => {
   );
 };
 
-export default FaqList;
-
+export default TestimonialList;

@@ -25,6 +25,7 @@ import FaqList from "@/app/faq/FaqList";
 import CreateFaq from "@/app/faq/CreateFaq";
 import UpdateFaq from "@/app/faq/UpdateFaq";
 import Campaign from "@/app/campaign/campaign";
+import TestimonialList from "@/app/testimonial/TestimonialList";
 
 function AppRoutes() {
   return (
@@ -340,6 +341,31 @@ function AppRoutes() {
             element={
               <Suspense fallback={<LoadingBar />}>
                 <UpdateFaq />
+              </Suspense>
+            }
+          />
+
+          <Route
+            path="/testimonial-list"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <TestimonialList />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/testimonial"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <TestimonialList />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/testimonials"
+            element={
+              <Suspense fallback={<LoadingBar />}>
+                <TestimonialList />
               </Suspense>
             }
           />

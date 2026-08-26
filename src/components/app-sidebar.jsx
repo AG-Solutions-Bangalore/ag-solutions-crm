@@ -22,6 +22,7 @@ import {
   HelpCircle,
   Settings,
   Building2,
+  Quote,
 } from "lucide-react";
 
 import { useMemo, useState } from "react";
@@ -79,6 +80,11 @@ const NAVIGATION_CONFIG = {
       url: "/faq-list",
       icon: HelpCircle,
     },
+    TESTIMONIAL: {
+      title: "Testimonials",
+      url: "/testimonial-list",
+      icon: Quote,
+    },
     SETTINGS: {
       title: "Settings",
       url: "/settings",
@@ -103,6 +109,7 @@ const USER_ROLE_PERMISSIONS = {
       "GALLERY",
       "BLOG",
       "FAQ",
+      "TESTIMONIAL",
       "SETTINGS",
     ],
   },
@@ -118,6 +125,7 @@ const USER_ROLE_PERMISSIONS = {
       "GALLERY",
       "BLOG",
       "FAQ",
+      "TESTIMONIAL",
       "SETTINGS",
     ],
   },
@@ -133,6 +141,7 @@ const USER_ROLE_PERMISSIONS = {
       "GALLERY",
       "BLOG",
       "FAQ",
+      "TESTIMONIAL",
       "SETTINGS",
     ],
   },
